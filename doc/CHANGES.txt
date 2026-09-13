@@ -7297,3 +7297,38 @@ Dec 6, 2009
      2.02x faster than Python 3.14, 4.38x faster than Python 3.12).
    - Benchmark: 1M loop runs in 31.3 ms (6.1x faster than original newLISP,
      1.19x faster than Python 3.14, 2.51x faster than Python 3.12).
+
+10.7.6n1 / Tail Call Optimization & Runtime Hardening
+
+   Implemented Tail Call Optimization (TCO) (nl-vm.c, nl-vm.h):
+   - Guaranteed O(1) constant stack memory for self-recursive and mutual tail calls.
+   - New opcode OP_TAIL_CALL_SELF (0x2A): In-place caller frame reuse via memmove
+     argument shifting, local clearing, and instruction pointer rewinding with
+     zero frame allocations on vm_frames.
+   - New opcode OP_TAIL_CALL (0x2B): Reuses active frame for calls to target compiled
+     lambdas; pops caller frame before primitive/tree-walker fallback dispatch.
+   - Tail position analysis in compileExpr: Automatically propagates is_tail across
+     if (both branches), when (final body expr), cond (final clause exprs),
+     begin (final expr), let/local (final body expr), and and/or (final operand).
+   - Tail call benchmarks: 100,000,000 self-tail recursion steps execute in ~1.02s;
+     10,000,000 mutual recursion steps (my-even? / my-odd?) execute in ~167ms;
+     1,000,000-step tail-recursive loop executes in 17.3 ms (2.15x faster than Python 3.14).
+
+   Bytecode Engine & Special Form Hardening:
+   - Automated special form detection in isSpecialForm: Recognizes primitives with
+     (flags & 3) != 0 and unevaluated AST forms (until, unless, if-not, macro,
+     curry, find-all, filter, clean, index) to prevent applicative argument pre-evaluation.
+   - Truthiness conformance: Updated OP_JUMP_IF_NIL and OP_JUMP_IF_NOT_NIL to evaluate
+     isNil(cond) || isEmpty(cond), correctly treating empty lists '() as falsy in control flow.
+   - Context default functor dispatch: Added CELL_CONTEXT resolution in DO_OP_CALL and
+     DO_OP_TAIL_CALL for implicit default functor invocation and namespace hash indexing.
+   - Gen 1 argument wrapper isolation: Wrapped primitive fallback arguments using
+     allocGen1CellWithContents(CELL_QUOTE, ...) and decoupled from resultStack, preventing
+     copyCell pointer reuse corruption during primitive evaluation.
+   - Windows process execution fallback: Added current working directory fallback (.\<cmd>)
+     in plainProcess (win-util.c) when executing binaries without path separators.
+
+   Test Suites:
+   - 100% passing on qa-dot (250+ built-ins, scoping, contexts; 0 errors).
+   - 100% passing on qa-comma (full comma-locale test suite; 0 errors).
+
