@@ -56,7 +56,10 @@ typedef enum {
     OP_CONST_2,
     OP_SUB_1,
     OP_SUB_2,
-    OP_ADD_1
+    OP_ADD_1,
+    
+    OP_TAIL_CALL,       /* operand: uint8_t argc */
+    OP_TAIL_CALL_SELF   /* operand: uint8_t argc */
 } VM_OPCODE;
 
 /* Forward declarations */

@@ -294,9 +294,31 @@ static int isSpecialForm(SYMBOL * sym)
     }
     const char * name = sym->name;
     if (!name) return 0;
+    if ((sym->flags & 3) != 0)
+    {
+        if (strcmp(name, "if") != 0 &&
+            strcmp(name, "when") != 0 &&
+            strcmp(name, "cond") != 0 &&
+            strcmp(name, "begin") != 0 &&
+            strcmp(name, "while") != 0 &&
+            strcmp(name, "let") != 0 &&
+            strcmp(name, "local") != 0 &&
+            strcmp(name, "dotimes") != 0)
+        {
+            return 1;
+        }
+    }
     if (strcmp(name, "letn") == 0 ||
         strcmp(name, "letex") == 0 ||
-        strcmp(name, "cond") == 0 || strcmp(name, "case") == 0 ||
+        strcmp(name, "case") == 0 ||
+        strcmp(name, "until") == 0 ||
+        strcmp(name, "unless") == 0 ||
+        strcmp(name, "if-not") == 0 ||
+        strcmp(name, "macro") == 0 ||
+        strcmp(name, "find-all") == 0 ||
+        strcmp(name, "filter") == 0 ||
+        strcmp(name, "clean") == 0 ||
+        strcmp(name, "index") == 0 ||
         strcmp(name, "catch") == 0 || strcmp(name, "throw") == 0 ||
         strcmp(name, "throw-error") == 0 ||
         strcmp(name, "collect") == 0 || strcmp(name, "amb") == 0 ||
@@ -313,18 +335,18 @@ static int isSpecialForm(SYMBOL * sym)
         strcmp(name, "expand") == 0 || strcmp(name, "lambda") == 0 ||
         strcmp(name, "fn") == 0 || strcmp(name, "lambda-macro") == 0 ||
         strcmp(name, "fn-macro") == 0 || strcmp(name, "args") == 0 ||
-        strcmp(name, "self") == 0 || strcmp(name, "env") == 0 ||
-        strcmp(name, "context") == 0 || strcmp(name, "eval") == 0 ||
-        strcmp(name, "and") == 0 || strcmp(name, "or") == 0)
+        strcmp(name, "env") == 0 ||
+        strcmp(name, "curry") == 0 ||
+        strcmp(name, "context") == 0 || strcmp(name, "eval") == 0)
     {
         return 1;
     }
     return 0;
 }
 
-static void compileExpr(Compiler * c, CELL * expr);
+static void compileExpr(Compiler * c, CELL * expr, int is_tail);
 
-static void compileExpr(Compiler * c, CELL * expr)
+static void compileExpr(Compiler * c, CELL * expr, int is_tail)
 {
     if (c->failed || expr == NULL || expr == nilCell)
     {
@@ -388,7 +410,7 @@ static void compileExpr(Compiler * c, CELL * expr)
                     emitUint16(c, (uint16_t)slot);
                 }
             }
-            else if (sym == c->self_symbol && c->self_symbol != NULL)
+            else if ((sym == c->self_symbol && c->self_symbol != NULL) || (sym->name && strcmp(sym->name, "self") == 0))
             {
                 emitOp(c, OP_LOAD_SELF);
             }
@@ -424,15 +446,15 @@ static void compileExpr(Compiler * c, CELL * expr)
                     if (then_expr == nilCell) { c->failed = 1; return; }
                     CELL * else_expr = then_expr->next;
 
-                    compileExpr(c, cond);
+                    compileExpr(c, cond, 0);
                     int else_jump = emitJump(c, OP_JUMP_IF_NIL);
-                    compileExpr(c, then_expr);
+                    compileExpr(c, then_expr, is_tail);
 
                     if (else_expr != nilCell)
                     {
                         int end_jump = emitJump(c, OP_JUMP);
                         patchJump(c, else_jump);
-                        compileExpr(c, else_expr);
+                        compileExpr(c, else_expr, is_tail);
                         patchJump(c, end_jump);
                     }
                     else
@@ -452,27 +474,161 @@ static void compileExpr(Compiler * c, CELL * expr)
                     if (cond == nilCell) { c->failed = 1; return; }
                     CELL * body = cond->next;
 
-                    compileExpr(c, cond);
-                    int else_jump = emitJump(c, OP_JUMP_IF_NIL);
-
                     if (body == nilCell)
                     {
-                        emitOp(c, OP_NIL);
+                        compileExpr(c, cond, is_tail);
+                        return;
                     }
-                    else
+
+                    compileExpr(c, cond, 0);
+                    int else_jump = emitJump(c, OP_JUMP_IF_NIL);
+
+                    while (body != nilCell)
                     {
-                        while (body != nilCell)
-                        {
-                            compileExpr(c, body);
-                            if (body->next != nilCell)
-                                emitOp(c, OP_POP);
-                            body = body->next;
-                        }
+                        int tail_here = is_tail && (body->next == nilCell);
+                        compileExpr(c, body, tail_here);
+                        if (body->next != nilCell)
+                            emitOp(c, OP_POP);
+                        body = body->next;
                     }
                     int end_jump = emitJump(c, OP_JUMP);
                     patchJump(c, else_jump);
                     emitOp(c, OP_NIL);
                     patchJump(c, end_jump);
+                    return;
+                }
+
+                /* Special form: (cond (c1 e11...) (c2 e21...) ...) */
+                if (strcmp(name, "cond") == 0)
+                {
+                    CELL * clause = head->next;
+                    if (clause == nilCell || clause == NULL)
+                    {
+                        emitOp(c, OP_NIL);
+                        return;
+                    }
+                    int end_jumps[64];
+                    int num_ends = 0;
+
+                    emitOp(c, OP_NIL);
+
+                    while (clause != nilCell && clause != NULL)
+                    {
+                        if (clause->type != CELL_EXPRESSION)
+                        {
+                            c->failed = 1;
+                            return;
+                        }
+                        CELL * pair = (CELL *)clause->contents;
+                        if (pair == nilCell || pair == NULL)
+                        {
+                            clause = clause->next;
+                            continue;
+                        }
+                        CELL * test_expr = pair;
+                        CELL * body_expr = pair->next;
+
+                        emitOp(c, OP_POP);
+                        compileExpr(c, test_expr, 0);
+                        emitOp(c, OP_DUP);
+                        int false_jump = emitJump(c, OP_JUMP_IF_NIL);
+
+                        if (body_expr != nilCell && body_expr != NULL)
+                        {
+                            emitOp(c, OP_POP);
+                            while (body_expr != nilCell && body_expr != NULL)
+                            {
+                                int tail_here = is_tail && (body_expr->next == nilCell);
+                                compileExpr(c, body_expr, tail_here);
+                                if (body_expr->next != nilCell)
+                                    emitOp(c, OP_POP);
+                                body_expr = body_expr->next;
+                            }
+                        }
+                        if (num_ends < 64)
+                            end_jumps[num_ends++] = emitJump(c, OP_JUMP);
+                        else { c->failed = 1; return; }
+
+                        patchJump(c, false_jump);
+                        clause = clause->next;
+                    }
+
+                    for (int i = 0; i < num_ends; i++)
+                    {
+                        patchJump(c, end_jumps[i]);
+                    }
+                    return;
+                }
+
+                /* Special form: (and expr...) */
+                if (strcmp(name, "and") == 0)
+                {
+                    CELL * arg = head->next;
+                    if (arg == nilCell || arg == NULL)
+                    {
+                        emitOp(c, OP_TRUE);
+                        return;
+                    }
+                    int exit_jumps[64];
+                    int num_exits = 0;
+                    while (arg != nilCell && arg != NULL)
+                    {
+                        if (arg->next == nilCell || arg->next == NULL)
+                        {
+                            compileExpr(c, arg, is_tail);
+                            break;
+                        }
+                        else
+                        {
+                            compileExpr(c, arg, 0);
+                            if (num_exits < 64)
+                                exit_jumps[num_exits++] = emitJump(c, OP_JUMP_IF_NIL);
+                            else { c->failed = 1; return; }
+                        }
+                        arg = arg->next;
+                    }
+                    if (num_exits > 0)
+                    {
+                        int end_jump = emitJump(c, OP_JUMP);
+                        for (int i = 0; i < num_exits; i++)
+                            patchJump(c, exit_jumps[i]);
+                        emitOp(c, OP_NIL);
+                        patchJump(c, end_jump);
+                    }
+                    return;
+                }
+
+                /* Special form: (or expr...) */
+                if (strcmp(name, "or") == 0)
+                {
+                    CELL * arg = head->next;
+                    if (arg == nilCell || arg == NULL)
+                    {
+                        emitOp(c, OP_NIL);
+                        return;
+                    }
+                    int exit_jumps[64];
+                    int num_exits = 0;
+                    while (arg != nilCell && arg != NULL)
+                    {
+                        if (arg->next == nilCell || arg->next == NULL)
+                        {
+                            compileExpr(c, arg, is_tail);
+                            break;
+                        }
+                        else
+                        {
+                            compileExpr(c, arg, 0);
+                            emitOp(c, OP_DUP);
+                            if (num_exits < 64)
+                                exit_jumps[num_exits++] = emitJump(c, OP_JUMP_IF_NOT_NIL);
+                            else { c->failed = 1; return; }
+                            emitOp(c, OP_POP);
+                        }
+                        arg = arg->next;
+                    }
+                    for (int i = 0; i < num_exits; i++)
+                        patchJump(c, exit_jumps[i]);
                     return;
                 }
 
@@ -488,7 +644,8 @@ static void compileExpr(Compiler * c, CELL * expr)
                     {
                         while (body != nilCell)
                         {
-                            compileExpr(c, body);
+                            int tail_here = is_tail && (body->next == nilCell);
+                            compileExpr(c, body, tail_here);
                             if (body->next != nilCell)
                                 emitOp(c, OP_POP);
                             body = body->next;
@@ -505,12 +662,12 @@ static void compileExpr(Compiler * c, CELL * expr)
                     CELL * body = cond->next;
 
                     int loop_start = c->code_size;
-                    compileExpr(c, cond);
+                    compileExpr(c, cond, 0);
                     int exit_jump = emitJump(c, OP_JUMP_IF_NIL);
 
                     while (body != nilCell)
                     {
-                        compileExpr(c, body);
+                        compileExpr(c, body, 0);
                         emitOp(c, OP_POP);
                         body = body->next;
                     }
@@ -567,7 +724,7 @@ static void compileExpr(Compiler * c, CELL * expr)
                             }
 
                             int slot = addLocal(c, var_sym);
-                            compileExpr(c, init_val);
+                            compileExpr(c, init_val, 0);
                             if (slot < 4)
                                 emitOp(c, (VM_OPCODE)(OP_STORE_LOCAL_0 + slot));
                             else
@@ -589,7 +746,8 @@ static void compileExpr(Compiler * c, CELL * expr)
                     {
                         while (body != nilCell)
                         {
-                            compileExpr(c, body);
+                            int tail_here = is_tail && (body->next == nilCell);
+                            compileExpr(c, body, tail_here);
                             if (body->next != nilCell)
                                 emitOp(c, OP_POP);
                             body = body->next;
@@ -631,7 +789,8 @@ static void compileExpr(Compiler * c, CELL * expr)
                     {
                         while (body != nilCell)
                         {
-                            compileExpr(c, body);
+                            int tail_here = is_tail && (body->next == nilCell);
+                            compileExpr(c, body, tail_here);
                             if (body->next != nilCell)
                                 emitOp(c, OP_POP);
                             body = body->next;
@@ -657,7 +816,7 @@ static void compileExpr(Compiler * c, CELL * expr)
                     int old_locals = c->num_locals;
 
                     int count_slot = addLocal(c, NULL);
-                    compileExpr(c, count_expr);
+                    compileExpr(c, count_expr, 0);
                     if (count_slot < 4) emitOp(c, (VM_OPCODE)(OP_STORE_LOCAL_0 + count_slot));
                     else { emitOp(c, OP_STORE_LOCAL); emitUint16(c, (uint16_t)count_slot); }
 
@@ -685,7 +844,7 @@ static void compileExpr(Compiler * c, CELL * expr)
                     {
                         while (body != nilCell)
                         {
-                            compileExpr(c, body);
+                            compileExpr(c, body, 0);
                             emitOp(c, OP_POP);
                             body = body->next;
                         }
@@ -744,7 +903,7 @@ static void compileExpr(Compiler * c, CELL * expr)
                         pair = pair->next;
 
                         int slot = findLocal(c, sym);
-                        compileExpr(c, val_expr);
+                        compileExpr(c, val_expr, 0);
                         emitOp(c, OP_DUP);
                         if (slot >= 0)
                         {
@@ -803,7 +962,7 @@ static void compileExpr(Compiler * c, CELL * expr)
                         }
                         else
                         {
-                            compileExpr(c, delta);
+                            compileExpr(c, delta, 0);
                             emitOp(c, is_inc ? OP_ADD : OP_SUB);
                         }
 
@@ -828,7 +987,7 @@ static void compileExpr(Compiler * c, CELL * expr)
                         }
                         else
                         {
-                            compileExpr(c, delta);
+                            compileExpr(c, delta, 0);
                             emitOp(c, is_inc ? OP_ADD : OP_SUB);
                         }
                         emitOp(c, OP_DUP);
@@ -848,8 +1007,8 @@ static void compileExpr(Compiler * c, CELL * expr)
                     CELL * arg2 = arg1->next;
                     if (arg2 == nilCell || arg2->next != nilCell) { c->failed = 1; return; }
 
-                    compileExpr(c, arg1);
-                    compileExpr(c, arg2);
+                    compileExpr(c, arg1, 0);
+                    compileExpr(c, arg2, 0);
 
                     if (strcmp(name, "<") == 0) emitOp(c, OP_LT);
                     else if (strcmp(name, ">") == 0) emitOp(c, OP_GT);
@@ -874,22 +1033,22 @@ static void compileExpr(Compiler * c, CELL * expr)
                         CELL * arg2 = (CELL *)arg->next;
                         if (arg2->type == CELL_LONG && (INT)arg2->contents == 1)
                         {
-                            compileExpr(c, arg);
+                            compileExpr(c, arg, 0);
                             emitOp(c, OP_ADD_1);
                             return;
                         }
                         if (arg->type == CELL_LONG && (INT)arg->contents == 1)
                         {
-                            compileExpr(c, arg2);
+                            compileExpr(c, arg2, 0);
                             emitOp(c, OP_ADD_1);
                             return;
                         }
                     }
-                    compileExpr(c, arg);
+                    compileExpr(c, arg, 0);
                     if (arg->next == nilCell) return;
                     while ((arg = (CELL *)arg->next) != nilCell)
                     {
-                        compileExpr(c, arg);
+                        compileExpr(c, arg, 0);
                         emitOp(c, OP_ADD);
                     }
                     return;
@@ -905,18 +1064,18 @@ static void compileExpr(Compiler * c, CELL * expr)
                         CELL * arg2 = (CELL *)arg->next;
                         if (arg2->type == CELL_LONG && (INT)arg2->contents == 1)
                         {
-                            compileExpr(c, arg);
+                            compileExpr(c, arg, 0);
                             emitOp(c, OP_SUB_1);
                             return;
                         }
                         if (arg2->type == CELL_LONG && (INT)arg2->contents == 2)
                         {
-                            compileExpr(c, arg);
+                            compileExpr(c, arg, 0);
                             emitOp(c, OP_SUB_2);
                             return;
                         }
                     }
-                    compileExpr(c, arg);
+                    compileExpr(c, arg, 0);
                     if (arg->next == nilCell)
                     {
                         emitOp(c, OP_NEG);
@@ -924,7 +1083,7 @@ static void compileExpr(Compiler * c, CELL * expr)
                     }
                     while ((arg = (CELL *)arg->next) != nilCell)
                     {
-                        compileExpr(c, arg);
+                        compileExpr(c, arg, 0);
                         emitOp(c, OP_SUB);
                     }
                     return;
@@ -939,11 +1098,11 @@ static void compileExpr(Compiler * c, CELL * expr)
                         emitOp(c, OP_CONST_1);
                         return;
                     }
-                    compileExpr(c, arg);
+                    compileExpr(c, arg, 0);
                     if (arg->next == nilCell) return;
                     while ((arg = arg->next) != nilCell)
                     {
-                        compileExpr(c, arg);
+                        compileExpr(c, arg, 0);
                         emitOp(c, OP_MUL);
                     }
                     return;
@@ -954,27 +1113,30 @@ static void compileExpr(Compiler * c, CELL * expr)
                 {
                     CELL * arg = head->next;
                     if (arg == nilCell || arg->next == nilCell) { c->failed = 1; return; }
-                    compileExpr(c, arg);
+                    compileExpr(c, arg, 0);
                     while ((arg = arg->next) != nilCell)
                     {
-                        compileExpr(c, arg);
+                        compileExpr(c, arg, 0);
                         emitOp(c, OP_DIV);
                     }
                     return;
                 }
 
                 /* Self-recursive call */
-                if (hsym == c->self_symbol && c->self_symbol != NULL)
+                if ((hsym == c->self_symbol && c->self_symbol != NULL) || (name && strcmp(name, "self") == 0))
                 {
                     CELL * arg = head->next;
                     int argc = 0;
                     while (arg != nilCell)
                     {
-                        compileExpr(c, arg);
+                        compileExpr(c, arg, 0);
                         argc++;
                         arg = arg->next;
                     }
-                    emitOp(c, OP_CALL_SELF);
+                    if (is_tail)
+                        emitOp(c, OP_TAIL_CALL_SELF);
+                    else
+                        emitOp(c, OP_CALL_SELF);
                     emitByte(c, (uint8_t)argc);
                     return;
                 }
@@ -986,16 +1148,19 @@ static void compileExpr(Compiler * c, CELL * expr)
             }
 
             /* General function invocation */
-            compileExpr(c, head);
+            compileExpr(c, head, 0);
             CELL * arg = head->next;
             int argc = 0;
             while (arg != nilCell)
             {
-                compileExpr(c, arg);
+                compileExpr(c, arg, 0);
                 argc++;
                 arg = arg->next;
             }
-            emitOp(c, OP_CALL);
+            if (is_tail)
+                emitOp(c, OP_TAIL_CALL);
+            else
+                emitOp(c, OP_CALL);
             emitByte(c, (uint8_t)argc);
             return;
         }
@@ -1019,15 +1184,21 @@ BYTECODE_OBJ * compileLambda(CELL * lambda, SYMBOL * selfSymbol)
 
     /* 1. Parse parameters */
     CELL * paramList = (CELL *)contents->contents;
+    int in_locals = 0;
     while (paramList != nilCell && paramList != NULL)
     {
         if (paramList->type == CELL_SYMBOL)
         {
             SYMBOL * sym = (SYMBOL *)paramList->contents;
             if (strcmp(sym->name, ",") == 0)
-                return NULL; /* Dynamic or local parameters: fallback to tree walker */
+            {
+                in_locals = 1;
+                paramList = paramList->next;
+                continue;
+            }
             if (c.num_locals >= MAX_LOCALS) return NULL;
             c.locals[c.num_locals++] = sym;
+            if (!in_locals) c.num_params++;
         }
         else
         {
@@ -1035,7 +1206,6 @@ BYTECODE_OBJ * compileLambda(CELL * lambda, SYMBOL * selfSymbol)
         }
         paramList = paramList->next;
     }
-    c.num_params = c.num_locals;
     c.max_locals = c.num_locals;
 
     /* 2. Compile body expressions */
@@ -1049,7 +1219,8 @@ BYTECODE_OBJ * compileLambda(CELL * lambda, SYMBOL * selfSymbol)
     {
         while (body != nilCell && body != NULL)
         {
-            compileExpr(&c, body);
+            int tail_here = (body->next == nilCell || body->next == NULL);
+            compileExpr(&c, body, tail_here);
             if (c.failed)
             {
                 cleanupCompiler(&c);
@@ -1218,6 +1389,8 @@ CELL * executeBytecode(CELL * lambdaCell, CELL * args, SYMBOL * newContext)
         [OP_SUB_1] = &&DO_OP_SUB_1,
         [OP_SUB_2] = &&DO_OP_SUB_2,
         [OP_ADD_1] = &&DO_OP_ADD_1,
+        [OP_TAIL_CALL] = &&DO_OP_TAIL_CALL,
+        [OP_TAIL_CALL_SELF] = &&DO_OP_TAIL_CALL_SELF,
     };
     #define DISPATCH() goto *dispatch_table[*ip++]
     DISPATCH();
@@ -1468,7 +1641,7 @@ CELL * executeBytecode(CELL * lambdaCell, CELL * args, SYMBOL * newContext)
                 int16_t offset = (int16_t)(ip[0] | (ip[1] << 8));
                 ip += 2;
                 CELL * cond = vm_stack[--vm_sp];
-                if (cond == nilCell || cond->type == CELL_NIL)
+                if (cond == nilCell || isNil(cond) || isEmpty(cond))
                 {
                     ip += offset;
                 }
@@ -1484,7 +1657,7 @@ CELL * executeBytecode(CELL * lambdaCell, CELL * args, SYMBOL * newContext)
                 int16_t offset = (int16_t)(ip[0] | (ip[1] << 8));
                 ip += 2;
                 CELL * cond = vm_stack[--vm_sp];
-                if (cond != nilCell && cond->type != CELL_NIL)
+                if (cond != nilCell && !isNil(cond) && !isEmpty(cond))
                 {
                     ip += offset;
                 }
@@ -1839,6 +2012,35 @@ CELL * executeBytecode(CELL * lambdaCell, CELL * args, SYMBOL * newContext)
             }
 
 #if USE_COMPUTED_GOTO
+            DO_OP_TAIL_CALL_SELF:
+#else
+            case OP_TAIL_CALL_SELF:
+#endif
+            {
+                uint8_t call_argc = *ip++;
+                int new_args_start = vm_sp - call_argc;
+                if (new_args_start != fp)
+                {
+                    memmove(&vm_stack[fp], &vm_stack[new_args_start], call_argc * sizeof(CELL *));
+                }
+                for (int i = call_argc; i < current_bc->num_params; i++)
+                {
+                    vm_stack[fp + i] = nilCell;
+                }
+                int start_reset = (call_argc > current_bc->num_params) ? call_argc : current_bc->num_params;
+                for (int i = start_reset; i < current_bc->num_locals; i++)
+                {
+                    vm_stack[fp + i] = nilCell;
+                }
+                int frame_slots = (call_argc > current_bc->num_locals) ? call_argc : current_bc->num_locals;
+                vm_sp = fp + frame_slots;
+                vm_frames[vm_frame_count - 1].argc = call_argc;
+                vm_frames[vm_frame_count - 1].ip = current_bc->code;
+                ip = current_bc->code;
+                DISPATCH();
+            }
+
+#if USE_COMPUTED_GOTO
             DO_OP_CALL:
 #else
             case OP_CALL:
@@ -1900,7 +2102,7 @@ CELL * executeBytecode(CELL * lambdaCell, CELL * args, SYMBOL * newContext)
                 for (int i = 0; i < call_argc; i++)
                 {
                     CELL * arg_val = vm_stack[fn_idx + 1 + i];
-                    CELL * item = makeCell(CELL_QUOTE, (UINT)arg_val);
+                    CELL * item = allocGen1CellWithContents(CELL_QUOTE, (UINT)arg_val);
 
                     if (argList == nilCell)
                         argList = tail = item;
@@ -1910,9 +2112,21 @@ CELL * executeBytecode(CELL * lambdaCell, CELL * args, SYMBOL * newContext)
                         tail = item;
                     }
                 }
-                pushResult(argList);
+                UINT * savedResultIdx = resultStackIdx;
 
-                CELL * res;
+                CELL * res = nilCell;
+                if (target_fn->type == CELL_CONTEXT)
+                {
+                    SYMBOL * ctx_sym = (SYMBOL *)target_fn->contents;
+                    SYMBOL * sPtr = translateCreateSymbol(ctx_sym->name, CELL_NIL, ctx_sym, TRUE);
+                    target_fn = (CELL *)sPtr->contents;
+                    if (isNil(target_fn))
+                    {
+                        res = evaluateNamespaceHash(argList, ctx_sym);
+                        goto CALL_DISPATCH_DONE;
+                    }
+                }
+
                 if (target_fn->type == CELL_PRIMITIVE)
                 {
                     CELL * (*pfunc)(CELL *) = (CELL *(*)(CELL *))target_fn->contents;
@@ -1942,8 +2156,15 @@ CELL * executeBytecode(CELL * lambdaCell, CELL * args, SYMBOL * newContext)
                 {
                     res = nilCell;
                 }
+CALL_DISPATCH_DONE:
 
-                popResult();
+                while (resultStackIdx > savedResultIdx)
+                {
+                    CELL * popped = popResult();
+                    if (popped != res)
+                        deleteList(popped);
+                }
+
                 CELL * cur = argList;
                 while (cur != nilCell && cur != NULL)
                 {
@@ -1956,6 +2177,158 @@ CELL * executeBytecode(CELL * lambdaCell, CELL * args, SYMBOL * newContext)
                 vm_sp = fn_idx;
                 VM_CHECK_STACK(1);
                 vm_stack[vm_sp++] = res;
+                DISPATCH();
+            }
+
+#if USE_COMPUTED_GOTO
+            DO_OP_TAIL_CALL:
+#else
+            case OP_TAIL_CALL:
+#endif
+            {
+                uint8_t call_argc = *ip++;
+                int fn_idx = vm_sp - 1 - call_argc;
+                CELL * target_fn = vm_stack[fn_idx];
+
+                if (target_fn->type == CELL_LAMBDA)
+                {
+                    BYTECODE_OBJ * target_bc = (target_fn->aux != 0 && target_fn->aux != (UINT)nilCell) ? (BYTECODE_OBJ *)target_fn->aux : NULL;
+                    if (target_bc != NULL && target_bc->magic != BYTECODE_MAGIC)
+                        target_bc = NULL;
+                    if (target_bc == NULL)
+                    {
+                        target_bc = compileLambda(target_fn, NULL);
+                        if (target_bc != NULL) target_fn->aux = (UINT)target_bc;
+                    }
+
+                    if (target_bc != NULL)
+                    {
+                        int frame_slots = (call_argc > target_bc->num_locals) ? call_argc : target_bc->num_locals;
+                        while (__builtin_expect(fp + frame_slots >= vm_stack_capacity, 0)) {
+                            vm_stack_capacity *= 2;
+                            vm_stack = (CELL * *)realloc(vm_stack, vm_stack_capacity * sizeof(CELL *));
+                        }
+                        memmove(&vm_stack[fp], &vm_stack[fn_idx + 1], call_argc * sizeof(CELL *));
+                        for (int i = call_argc; i < target_bc->num_params; i++)
+                        {
+                            vm_stack[fp + i] = nilCell;
+                        }
+                        int start_reset = (call_argc > target_bc->num_params) ? call_argc : target_bc->num_params;
+                        for (int i = start_reset; i < target_bc->num_locals; i++)
+                        {
+                            vm_stack[fp + i] = nilCell;
+                        }
+                        vm_sp = fp + frame_slots;
+                        vm_frames[vm_frame_count - 1] = (VM_FRAME){
+                            .bytecode = target_bc,
+                            .ip = target_bc->code,
+                            .fp = fp,
+                            .argc = call_argc,
+                            .self_cell = target_fn
+                        };
+                        current_bc = target_bc;
+                        current_self = target_fn;
+                        ip = target_bc->code;
+                        DISPATCH();
+                    }
+                }
+
+                /* Fallback to tree-walking lambda or primitive call */
+                CELL * argList = nilCell;
+                CELL * tail = NULL;
+                for (int i = 0; i < call_argc; i++)
+                {
+                    CELL * arg_val = vm_stack[fn_idx + 1 + i];
+                    CELL * item = allocGen1CellWithContents(CELL_QUOTE, (UINT)arg_val);
+
+                    if (argList == nilCell)
+                        argList = tail = item;
+                    else
+                    {
+                        tail->next = item;
+                        tail = item;
+                    }
+                }
+                UINT * savedResultIdx = resultStackIdx;
+
+                CELL * res = nilCell;
+                if (target_fn->type == CELL_CONTEXT)
+                {
+                    SYMBOL * ctx_sym = (SYMBOL *)target_fn->contents;
+                    SYMBOL * sPtr = translateCreateSymbol(ctx_sym->name, CELL_NIL, ctx_sym, TRUE);
+                    target_fn = (CELL *)sPtr->contents;
+                    if (isNil(target_fn))
+                    {
+                        res = evaluateNamespaceHash(argList, ctx_sym);
+                        goto TAIL_CALL_DISPATCH_DONE;
+                    }
+                }
+
+                if (target_fn->type == CELL_PRIMITIVE)
+                {
+                    CELL * (*pfunc)(CELL *) = (CELL *(*)(CELL *))target_fn->contents;
+                    res = pfunc(argList);
+                }
+                else if (target_fn->type == CELL_LAMBDA)
+                {
+                    res = evaluateLambda((CELL *)target_fn->contents, argList, currentContext);
+                }
+                else if (target_fn->type == CELL_EXPRESSION)
+                {
+                    res = implicitIndexList(target_fn, argList);
+                }
+                else if (target_fn->type == CELL_ARRAY)
+                {
+                    res = implicitIndexArray(target_fn, argList);
+                }
+                else if (target_fn->type == CELL_STRING)
+                {
+                    res = implicitIndexString(target_fn, argList);
+                }
+                else if (isNumber(target_fn->type))
+                {
+                    res = implicitNrestSlice(target_fn, argList);
+                }
+                else
+                {
+                    res = nilCell;
+                }
+TAIL_CALL_DISPATCH_DONE:
+
+                while (resultStackIdx > savedResultIdx)
+                {
+                    CELL * popped = popResult();
+                    if (popped != res)
+                        deleteList(popped);
+                }
+
+                CELL * cur = argList;
+                while (cur != nilCell && cur != NULL)
+                {
+                    if (cur->type == CELL_QUOTE)
+                        cur->contents = (UINT)nilCell;
+                    cur = cur->next;
+                }
+                deleteList(argList);
+
+                --vm_frame_count;
+                if (vm_frame_count == base_frame)
+                {
+                    CELL * final_ret = copyCell(res);
+                    vm_sp = start_sp;
+                    currentContext = contextSave;
+                    symbolCheck = NULL;
+                    stringCell = NULL;
+                    return final_ret;
+                }
+                VM_FRAME * caller = &vm_frames[vm_frame_count - 1];
+                vm_sp = fp;
+                VM_CHECK_STACK(1);
+                vm_stack[vm_sp++] = res;
+                current_bc = caller->bytecode;
+                current_self = caller->self_cell;
+                fp = caller->fp;
+                ip = caller->ip;
                 DISPATCH();
             }
 

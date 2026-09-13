@@ -81,6 +81,12 @@ memcpy(cPtr, command, len + 1);
 init_argv(cPtr, argv);
 
 hProc = (HANDLE)_spawnvp(P_NOWAIT, argv[0], (const char * const *)argv); 
+if(hProc == INVALID_HANDLE_VALUE && strchr(argv[0], '/') == NULL && strchr(argv[0], '\\') == NULL)
+    {
+    char relPath[512];
+    snprintf(relPath, sizeof(relPath), ".\\%s", argv[0]);
+    hProc = (HANDLE)_spawnvp(P_NOWAIT, relPath, (const char * const *)argv);
+    } 
 
 free(cPtr);
 if(hProc == INVALID_HANDLE_VALUE) return(0);
