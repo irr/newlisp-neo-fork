@@ -706,6 +706,8 @@ extern int IOchannelIsSocket;
 extern int MAX_CPU_STACK;
 extern INT MAX_CELL_COUNT;
 extern int version;
+extern SYMBOL objSymbol; /* FOOP: container of (self) */
+extern CELL * objCell;
 extern int opsys;
 extern char ostype[];
 extern size_t cellCount;

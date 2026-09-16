@@ -2090,9 +2090,9 @@ while(address != nilCell)
         {
         if(startIp)
             {
-            if(hostaddr == NULL) hostaddr = alloca(len + 4);
+            if(hostaddr == NULL) hostaddr = alloca(len + 12);
             memcpy(hostaddr, host, len);
-            snprintf(hostaddr + len, 4, "%d", ipNo);
+            snprintf(hostaddr + len, 12, "%d", ipNo);
             }
         else
             hostaddr = host;

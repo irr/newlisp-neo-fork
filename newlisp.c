@@ -104,23 +104,23 @@ int bigEndian = 1; /* gets set in main() */
 int version = 10706;
 
 char copyright[]=
-"\nnewLISP Neo v.10.7.6n1 Copyright (C) 2020 Lutz Mueller; Copyright (C) 2026 KIM Taegyoon. All rights reserved.\n\n%s\n\n";
+"\nnewLISP Spark v.10.7.6s1 Copyright (C) 2020 Lutz Mueller; Copyright (C) 2026 KIM Taegyoon; Copyright (C) 2026 Ivan Rocha. All rights reserved.\n\n%s\n\n";
 
 #ifndef NEWLISP64
 #ifdef SUPPORT_UTF8
 char banner[]=
-"newLISP Neo v.10.7.6n1 32-bit on %s IPv4/6 UTF-8%s%s\n\n";
+"newLISP Spark v.10.7.6s1 32-bit on %s IPv4/6 UTF-8%s%s\n\n";
 #else
 char banner[]=
-"newLISP Neo v.10.7.6n1 32-bit on %s IPv4/6%s%s\n\n";
+"newLISP Spark v.10.7.6s1 32-bit on %s IPv4/6%s%s\n\n";
 #endif
 #else /* NEWLISP64 */
 #ifdef SUPPORT_UTF8
 char banner[]=
-"newLISP Neo v.10.7.6n1 64-bit on %s IPv4/6 UTF-8%s%s\n\n";
+"newLISP Spark v.10.7.6s1 64-bit on %s IPv4/6 UTF-8%s%s\n\n";
 #else
 char banner[]=
-"newLISP Neo v.10.7.6n1 64-bit on %s IPv4/6%s%s\n\n";
+"newLISP Spark v.10.7.6s1 64-bit on %s IPv4/6%s%s\n\n";
 #endif 
 #endif /* NEWLISP64 */
 
@@ -495,7 +495,7 @@ for (i = 0; i < count; i++)
     len = strlen(test);
     if((len + nlen + 2) > PATH_MAX) 
 	    return(NULL);
-    strncpy(buff, test, len + 1);
+    memcpy(buff, test, len + 1);
     buff[len] = '/';
     memcpy(buff + len + 1, name, nlen);
     buff[len + 1 + nlen] = 0;
@@ -554,12 +554,15 @@ else
 	name = win_getExePath(alloca(MAX_PATH));
     loadFile(name, *(unsigned int *)linkOffset, 1, mainContext);
 #else /* if not Win32 get full pathname of file in name */
-    if(strchr(name, '/') == NULL) 
+    if(strchr(name, '/') == NULL)
+        {
+        char * origName = name;
         if((name = which(name, alloca(PATH_MAX))) == NULL)
             {
-            printf("%s: %s\n", strerror(ENOENT), name);
+            printf("%s: %s\n", strerror(ENOENT), origName);
             exit(ENOENT);
             }
+        }
     loadFile(name, *(unsigned int *)linkOffset, 1, mainContext);
 #endif
     }
@@ -2262,7 +2265,16 @@ UINT gen0_collections = 0;
 
 void initGenerationalGC(void)
 {
-if(gen0_start == NULL)
+/* The gen0 copying nursery is disabled by default: collectGen0()
+   evacuates cells while the tree-walking evaluator still holds raw
+   pointers to them in C locals (in-flight expression trees in
+   evaluateExpression()/evaluateLambda()). Without C-stack scanning
+   those pointers go stale after the gen0 reset and live expressions
+   get corrupted (e.g. the qa-factorfibo sieve at N=1000000).
+   All cells are allocated from the gen1 free list instead, which is
+   the proven non-moving upstream allocator.
+   Set NEWLISP_ENABLE_GEN0=1 to experiment with the nursery. */
+if(getenv("NEWLISP_ENABLE_GEN0") && gen0_start == NULL)
     {
     gen0_start = (CELL *)allocMemory(GEN0_SIZE_CELLS * sizeof(CELL));
     gen0_ptr = gen0_start;
@@ -2787,7 +2799,7 @@ if(isEnvelope(cell->type))
                 }
             else
                 newCell->aux = (UINT)list;  /* last element optimization */
-            popResult();
+            (void)popResult();
             }
         }
     }
@@ -2840,7 +2852,7 @@ pushResult(firstCell);
 while((cell = cell->next) != nilCell)
     newCell = newCell->next = copyCell(cell);
 
-popResult();
+(void)popResult();
 lastCellCopied = newCell;
 return(firstCell);
 }
@@ -3103,7 +3115,11 @@ va_list argptr;
 va_start(argptr,format);
 
 /* defined in nl-filesys.c if not in libc */
-vasprintf(&buffer, format, argptr); 
+if(vasprintf(&buffer, format, argptr) == -1)
+    {
+    va_end(argptr);
+    return;
+    }
 
 prettyPrintLength += strlen(buffer);
 switch(device)
@@ -3301,11 +3317,12 @@ while(size--)
         case '\t': varPrintf(device,"\\t"); break;
         case '\\': varPrintf(device,"\\\\"); break;
         case '"': varPrintf(device,"\\%c",'"'); break;
-        default: 
+        default:
             if((unsigned char)chr < 32 || (stringOutputRaw && (unsigned char)chr > 126))
-                            varPrintf(device,"\\%03u", (unsigned char)chr);
-                        else
-                varPrintf(device,"%c",chr); break;
+                varPrintf(device,"\\%03u", (unsigned char)chr);
+            else
+                varPrintf(device,"%c",chr);
+            break;
         }
     }
 varPrintf(device,"\"");
@@ -3737,8 +3754,8 @@ char * errorMessage[] =
 
 void errorMissingPar(STREAM * stream)
 {
-char str[48]; 
-snprintf(str, 40, "...%.40s", ((char *)((stream->ptr - stream->buffer) > 40 ? stream->ptr - 40 : stream->buffer)));
+char str[48];
+snprintf(str, sizeof(str), "...%.44s", ((char *)((stream->ptr - stream->buffer) > 40 ? stream->ptr - 40 : stream->buffer)));
 errorProcExt2(ERR_MISSING_PAR, stuffString(str));
 }
 
@@ -5730,7 +5747,7 @@ for(;;)
     next = params->next;
     if(params == nilCell)
         return(errorProc(ERR_MISSING_ARGUMENT));
-	pushResultFlag = TRUE;
+    pushResultFlag = TRUE;
     if(next == nilCell) return(setDefine(symbol, params, SET_SET));
     setDefine(symbol, params, SET_SET);
     params = next;
@@ -7236,7 +7253,7 @@ else
     else
         return(errorProcExt(ERR_CONTEXT_EXPECTED, params));
 
-        overWriteFlag = (evaluateExpression(next)->type != CELL_NIL);
+    overWriteFlag = (evaluateExpression(next)->type != CELL_NIL);
 
     /* allow symbols to be converted to contexts */
     if(symbolType(toContext) != CELL_CONTEXT)
@@ -7967,10 +7984,15 @@ CELL * objCellSave;
 SYMBOL * objSymbolContextSave;
 int objSymbolFlagsSave;
 
-if(params->type != CELL_SYMBOL)
+if(params->type == CELL_SYMBOL)
+    methodSymbol = (SYMBOL *)params->contents;
+/* (quote sym) arrives when called from compiled bytecode */
+else if(params->type == CELL_QUOTE
+    && (CELL *)params->contents != NULL
+    && ((CELL *)params->contents)->type == CELL_SYMBOL)
+    methodSymbol = (SYMBOL *)((CELL *)params->contents)->contents;
+else
     return(errorProcExt(ERR_SYMBOL_EXPECTED, params));
-
-methodSymbol = (SYMBOL *)params->contents;
 params = getEvalDefault(params->next, &obj);
 
 objSymbolFlagsSave = objSymbol.flags;

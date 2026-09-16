@@ -931,7 +931,7 @@ if(*jsonStr == 'e' || *jsonStr == 'E')
         ++jsonStr;
     if(!isDigit((unsigned char)*jsonStr))
         return(setJSONerror(ERR_JSON_INVALID_NUMBER, jsonStr));
-        while(isDigit((unsigned char)*jsonStr)) ++jsonStr;
+    while(isDigit((unsigned char)*jsonStr)) ++jsonStr;
     }
 
 /* number must end with space or control character  or white space*/

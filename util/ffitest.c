@@ -41,12 +41,13 @@
 #endif
 */
 
-char ret_sint8(char number)
+/* signed char: plain char is unsigned on aarch64/ARM */
+signed char ret_sint8(signed char number)
     {
     return(number);
     }
 
-char ret_uint8(unsigned char number)
+unsigned char ret_uint8(unsigned char number)
     {
     return(number);
     }
