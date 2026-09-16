@@ -56,7 +56,7 @@ This enhanced release overhauls the newLISP engine with a **Direct-Threaded Byte
 
 ## Performance Benchmarks: newLISP Spark vs. Python 3.14
 
-All benchmarks were evaluated under identical conditions on a Windows x86_64 host.
+All benchmarks were evaluated under identical conditions on the same x86_64 host (originally recorded on Windows; ratios are platform-independent relative measurements).
 
 ### 1. Recursive Fibonacci: `(fib 30)`
 
@@ -161,19 +161,10 @@ Python reference:
 ## Building and Installation
 
 ### Prerequisites
-- GCC / MinGW-w64 or Clang (supporting C99/GNU extensions for computed gotos)
+- GCC or Clang (supporting C99/GNU extensions for computed gotos)
 - GNU Make
 
-### Build on Windows (MinGW-w64)
-```powershell
-# Batch file (with MinGW-w64 in PATH):
-.\make.bat
-
-# Or build with a specific makefile:
-mingw32-make -f makefile_mingw64_utf8
-```
-
-### Build on Linux, macOS, and BSD
+### Build on Linux and macOS
 ```bash
 # Automatic platform AND architecture detection
 # (aarch64/ARM64 — e.g. NVIDIA DGX Spark — is auto-detected):
@@ -187,7 +178,6 @@ make
 make -f makefile_linuxLP64_utf8
 make -f makefile_dgx_spark_utf8_ffi   # aarch64/ARM64 Linux (DGX Spark)
 make -f makefile_darwinLP64_utf8_ffi
-make -f makefile_bsdLP64_utf8
 ```
 
 ### Installation
@@ -243,7 +233,7 @@ python bench.py
 ├── nl-vm.c / nl-vm.h         # Direct-threaded bytecode compiler and virtual machine
 ├── nl-*.c                    # Built-in subsystems (math, string, socket, filesys, etc.)
 ├── pcre.c / pcre.h           # Bundled PCRE regular expression library
-├── makefile_*                # Cross-platform build definitions for Linux (x86_64 + aarch64/DGX Spark), macOS, BSD, Win32/64
+├── makefile_*                # Build definitions for Linux (x86_64 + aarch64/DGX Spark) and macOS
 ├── bench_fib.lsp             # Recursive Fibonacci benchmark harness
 ├── bench_loop.lsp            # Arithmetic loop benchmark harness
 ├── bench_tco.lsp             # Tail Call Optimization (TCO) benchmark harness

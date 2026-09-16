@@ -21,11 +21,7 @@
 #include "protos.h"
 #include "primes.h"
 
-#ifdef WINDOWS
-#include <winsock2.h>
-#else
 #include <sys/socket.h>
-#endif
 
 #ifdef READLINE
 #include <readline/readline.h>
@@ -41,63 +37,18 @@
 
 #define INIT_FILE "init.lsp"
 
-#ifdef WINDOWS
-#define fprintf win_fprintf
-#define fgets win_fgets
-#define fclose win_fclose
-#endif
-
 #ifdef LIBRARY
 extern STREAM libStrStream;
 int newlispLibConsoleFlag = 0;
 #endif
 
-#if defined(LINUX) || defined(KFREEBSD)
-#ifdef ANDROID
-int opsys = 11;
-#else
+#ifdef LINUX
 int opsys = 1;
-#endif
-#endif
-
-#ifdef _BSD
-int opsys = 2;
 #endif
 
 #ifdef MAC_OSX
-#ifdef EMSCRIPTEN
-int opsys = 11;
-#else
 int opsys = 3;
 #endif
-#endif
-
-#ifdef SOLARIS
-int opsys = 4;
-#endif
-
-#ifdef WINDOWS
-int opsys = 6;
-#endif
-
-#ifdef OS2 
-int opsys = 7; 
-#endif
-
-#ifdef CYGWIN
-int opsys = 8;
-#endif
-
-#ifdef TRU64
-int opsys = 9; 
-#endif
-
-#ifdef AIX
-int opsys = 10;
-#endif
-
-
-/* opsys = 11 taken for ANDROID; see LINUX */
 
 int bigEndian = 1; /* gets set in main() */
 
@@ -128,12 +79,8 @@ char banner2[]= ", options: newlisp -h";
 
 void linkSource(char *, char *, char *);
 char linkOffset[] = "&&&&@@@@";
-char preLoad[] = 
-#ifdef EMSCRIPTEN
-    "(set (global 'module) (fn ($x) (load (append {/newlisp-js/} $x))))"
-#else
+char preLoad[] =
     "(set (global 'module) (fn ($x) (load (append (env {NEWLISPDIR}) {/modules/} $x))))"
-#endif
     "(context 'Tree) (constant 'Tree:Tree) (context MAIN)"
     "(define (Class:Class) (cons (context) (args)))";
 void printHelpText(void);
@@ -154,9 +101,7 @@ int httpSafe = 0;
 int evalSilent = 0;
 
 
-#ifdef WINDOWS
 int IOchannelIsSocketStream = 0;
-#endif
 FILE * IOchannel;
 char * IOdomain = NULL;
 int IOport = 0;
@@ -283,7 +228,7 @@ int stringOutputRaw = TRUE;
 int pushResultFlag = TRUE;
 
 char startupDir[PATH_MAX]; /* start up directory, if defined via -w */
-char * tempDir; /* /tmp on unix or geten("TMP") on Windows */
+char * tempDir; /* /tmp on unix */
 char logFile[PATH_MAX]; /* logFile, is define with -l, -L */
 
 /* nl-filesys.c */
@@ -291,118 +236,29 @@ int pagesize;
 
 /* ============================== MAIN ================================ */
 
-#ifndef EMSCRIPTEN
-/*
-void setupSignalHandler(int sig, void (* handler)(int))
-{
-static struct sigaction sig_act;
-sig_act.sa_handler = handler;
-sigemptyset(&sig_act.sa_mask);
-sig_act.sa_flags = SA_RESTART | SA_NOCLDSTOP;
-if(sigaction(sig, &sig_act, 0) != 0)
-    printf("Error setting signal:%d handler\n", sig);
-}
-*/
 void setupSignalHandler(int sig, void (* handler)(int))
 {
 if(signal(sig, handler) == SIG_ERR)
     printf("Error setting signal:%d handler\n", sig);
 }
 
-#if defined(SOLARIS) || defined(TRU64) || defined(AIX)
-void sigpipe_handler(int sig)
-{
-setupSignalHandler(SIGPIPE, sigpipe_handler);
-}
-
-void sigchld_handler(int sig)
-{
-waitpid(-1, (int *)0, WNOHANG);
-}
-
-void ctrlC_handler(int sig) 
-{
-char chr; 
-
-setupSignalHandler(SIGINT, ctrlC_handler);
-
-traceFlag |= TRACE_SIGINT;
-
-printErrorMessage(ERR_SIGINT, NULL, 0);
-printf("%s", "(c)ontinue, e(x)it, (r)eset:");
-fflush(NULL);
-chr = getchar();
-if(chr == 'x') exit(1);
-if(chr == 'c') traceFlag &= ~TRACE_SIGINT;
-}
-
-
-void sigalrm_handler(int sig)
-{
-setupSignalHandler(sig, sigalrm_handler);
-/* check if not sitting idle */
-if(recursionCount)
-  traceFlag |= TRACE_TIMER;
-else /* if idle */
-  executeSymbol(timerEvent, NULL, NULL);
-}
-
-#endif /* SOLARIS, TRUE64, AIX */
-
-
 void setupAllSignals(void)
 {
-#if defined(SOLARIS) || defined(TRU64) || defined(AIX)
-setupSignalHandler(SIGINT, ctrlC_handler);
-#else
 setupSignalHandler(SIGINT, signal_handler);
-#endif
-
-#ifndef WINDOWS
-
-#if defined(SOLARIS) || defined(TRU64) || defined(AIX)
-setupSignalHandler(SIGALRM, sigalrm_handler);
-setupSignalHandler(SIGVTALRM, sigalrm_handler);
-setupSignalHandler(SIGPROF, sigalrm_handler);
-setupSignalHandler(SIGPIPE, sigpipe_handler);
-setupSignalHandler(SIGCHLD, sigchld_handler);
-#else
 setupSignalHandler(SIGALRM, signal_handler);
 setupSignalHandler(SIGVTALRM, signal_handler);
 setupSignalHandler(SIGPROF, signal_handler);
 setupSignalHandler(SIGPIPE, signal_handler);
 setupSignalHandler(SIGCHLD, signal_handler);
-#endif
-
-#endif
 }
 
 void signal_handler(int sig)
 {
-#ifndef WINDOWS
-char chr; 
-#endif
+char chr;
 
 if(sig > 32 || sig < 1) return;
 
-#if defined(SOLARIS) || defined(TRU64) || defined(AIX)
-switch(sig)
-  {
-  case SIGALRM:
-  case SIGVTALRM:
-  case SIGPROF:
-    setupSignalHandler(sig, sigalrm_handler);
-    break;
-  case SIGPIPE:
-    setupSignalHandler(SIGPIPE, sigpipe_handler);
-    break;
-  case SIGCHLD:
-    setupSignalHandler(SIGCHLD, sigchld_handler);
-    break;
-  }
-#else
 setupSignalHandler(sig, signal_handler);
-#endif
 
 if(symHandler[sig - 1] != nilSymbol)
     {
@@ -424,14 +280,11 @@ switch(sig)
     case SIGINT:
         printErrorMessage(ERR_SIGINT, NULL, 0);
 
-#ifdef WINDOWS
-        traceFlag |= TRACE_SIGINT;
-#else
         printf("%s", "\n(c)ontinue, (d)ebug, e(x)it, (r)eset:");
         fflush(NULL);
         chr = getchar();
         if(chr == 'x') exit(1);
-        if(chr == 'd') 
+        if(chr == 'd')
             {
             traceFlag &= ~TRACE_SIGINT;
             openTrace();
@@ -451,14 +304,13 @@ switch(sig)
         break;
     case SIGCHLD:
         waitpid(-1, (int *)0, WNOHANG);
-#endif
         break;
     default:
         return;
-    }   
+    }
+
 }
-#endif /* no EMSCRIPTEN */
- 
+
 char * which(char * name, char * buff)
 {
 char *path_list, *test, *tmp, *path_parsed;
@@ -476,13 +328,9 @@ path_parsed = alloca(len + 1);
 strncpy(path_parsed, path_list, len + 1);
 
 test = path_parsed;
-while (TRUE) 
+while (TRUE)
     {
-#ifdef WINDOWS
-    tmp = strchr(test, ';');
-#else
     tmp = strchr(test, ':');
-#endif
     if (tmp == NULL) break;
     *tmp = 0;
     test = tmp + 1;
@@ -550,10 +398,6 @@ if(strncmp(linkOffset + 4, "@@@@", 4) == 0)
 /* load part at offset no init.lsp or .init.lsp is loaded */
 else
     {
-#ifdef WINDOWS
-	name = win_getExePath(alloca(MAX_PATH));
-    loadFile(name, *(unsigned int *)linkOffset, 1, mainContext);
-#else /* if not Win32 get full pathname of file in name */
     if(strchr(name, '/') == NULL)
         {
         char * origName = name;
@@ -564,21 +408,13 @@ else
             }
         }
     loadFile(name, *(unsigned int *)linkOffset, 1, mainContext);
-#endif
     }
 }
 #endif /* LIBRARY */
 
-#ifdef _BSD
-struct lconv    *localeconv(void);
-char            *setlocale(int, const char *);  
-#endif
-
 void initLocale(void)
 {
-#ifndef ANDROID
 struct lconv * lc;
-#endif
 char * locale;
 
 #ifndef SUPPORT_UTF8
@@ -590,57 +426,20 @@ locale = setlocale(LC_ALL, "");
 if (locale != NULL)
   stringOutputRaw = (strcmp(locale, "C") == 0);
 
-#ifdef ANDROID
-lc_decimal_point = '.';
-#else
 lc = localeconv();
 lc_decimal_point = *lc->decimal_point;
-#endif
 }
 
 /* set NEWLISPDIR only if not set already */
 void initNewlispDir(void)
 {
-#ifdef WINDOWS
-char * varValue;
-char * newlispDir;
-int len;
-
-if(getenv("NEWLISPDIR") == NULL)
-    {
-    newlispDir = alloca(MAX_PATH);
-    varValue = getenv("PROGRAMFILES");
-    if(varValue != NULL)
-        {
-        len = strlen(varValue);
-        strncpy(newlispDir, varValue, MAX_PATH - 12);
-        memcpy(newlispDir + len, "/newlisp", 8);
-        newlispDir[len + 8] = 0; 
-        setenv("NEWLISPDIR", newlispDir, TRUE);
-        }
-    else setenv("NEWLISPDIR", "newlisp", TRUE);
-    }
-#else
 if(getenv("NEWLISPDIR") == NULL)
     setenv("NEWLISPDIR", NEWLISPDIR, TRUE);
-#endif
 }
 
 void initTempDir()
 {
-#ifdef WINDOWS
-if((tempDir = getenv("TMP")) == NULL)
-    {
-    printf("Environment variable TMP not set, assuming /tmp .");
-    tempDir = "/tmp";
-    }
-#else
-#ifdef ANDROID
-tempDir = "/data/tmp";
-#else /* all UNIX */
 tempDir = "/tmp";
-#endif
-#endif
 return;
 }
 
@@ -661,18 +460,14 @@ if(*index >= (argc - 1))
 return(arg[*index]);
 }
 
-#ifndef WINDOWS
 char ** MainArgs;
-#endif 
 
 CELL * getMainArgs(char * mainArgs[])
 {
 CELL * argList;
 int idx = 0;
 
-#ifndef WINDOWS
 MainArgs = mainArgs;
-#endif
 
 argList = getCell(CELL_EXPRESSION);
 
@@ -693,21 +488,6 @@ STREAM cmdStream = {NULL, NULL, 0, 0, 0};
 char * cmd;
 int idx;
 
-#ifdef WINDOWS
-WSADATA WSAData;
-if(WSAStartup(MAKEWORD(2,2), &WSAData) != 0)
-    {
-    printf("Winsocket initialization failed\n");
-    exit(-1);
-    }
-pagesize = 4096;
-
-/* replace '_CRT_fmode = _O_BINARY' in nl-filesys.c for 10.4.8, thanks to Kosh */
-_setmode(_fileno(stdin), _O_BINARY);
-_setmode(_fileno(stdout), _O_BINARY);
-_setmode(_fileno(stderr), _O_BINARY);
-#endif
-
 #ifdef SUPPORT_UTF8
 opsys += 128;
 #endif
@@ -721,17 +501,8 @@ opsys += 1024;
 initFFI();
 #endif
 
-#ifndef WINDOWS
-#ifndef OS2
 pagesize = getpagesize();
-#endif
 tzset();
-#endif
-
-#ifdef OS2
-/* Reset the floating point coprocessor */
-_fpreset();
-#endif
 
 initLocale();
 initNewlispDir();
@@ -742,29 +513,8 @@ bigEndian = (*((char *)&bigEndian) == 0);
 
 initStacks();
 initialize();
-initDefaultInAddr(); 
+initDefaultInAddr();
 
-#ifdef WINDOWS
-#ifdef SUPPORT_UTF8
- {
-   /*
-     command line parameter is MBCS.
-     MBCS -> Unicode(UTF-16) -> UTF-8
-   */
-   char **argv_utf8 = allocMemory((argc + 1)* sizeof(char *)) ;
-   {
-   for(idx = 0 ; idx<argc ; idx++)
-      {
-      WCHAR *p_argvW = ansi_mbcs_to_utf16(argv[idx]) ;
-      char *p_argvU = utf16_to_utf8(p_argvW) ;
-      argv_utf8[idx] = p_argvU ;
-      }
-   argv_utf8[idx] = NULL ;
-   argv = argv_utf8 ;
-   }
- }
-#endif
-#endif
 mainArgsSymbol->contents = (UINT)getMainArgs(argv);
 
 if((errorReg = setjmp(errorJump)) != 0) 
@@ -915,10 +665,7 @@ if(isatty(fileno(IOchannel)))
     }
 else
     {
-#ifdef WINDOWS
-    if(!IOchannelIsSocketStream) 
-#endif
-        setbuf(IOchannel,0);
+    setbuf(IOchannel,0);
     if(forcePromptMode)
         varPrintf(OUT_CONSOLE, banner, OSTYPE, LIBFFI, banner2);
     }
@@ -939,7 +686,7 @@ if(errorReg && !isNil((CELL*)errorEvent->contents) )
 #ifdef READLINE
 rl_readline_name = "newlisp";
 rl_attempted_completion_function = (char ** (*) (const char *, int, int))newlisp_completion;
-#if defined(LINUX) || defined(_BSD) || defined(KFREEBSD)
+#ifdef LINUX
 /* in Bash .inputrc put 'set blink-matching-paren on' */
 rl_set_paren_blink_timeout(300000); /* 300 ms */
 #endif
@@ -962,12 +709,7 @@ while(TRUE)
     /* daemon mode timeout if nothing read after accepting connection */
     if(connectionTimeout && IOchannel && daemonMode)
         {
-#ifdef WINDOWS
-        if(IOchannelIsSocketStream)
-          if(wait_ready(getSocket(IOchannel), connectionTimeout, 0) == 0)
-#else
         if(wait_ready(fileno(IOchannel), connectionTimeout, 0) == 0)
-#endif
             {
             fclose(IOchannel);
             setupServer(1);
@@ -1005,9 +747,7 @@ while(TRUE)
     executeCommandLine(command, OUT_CONSOLE, &cmdStream);
     }
 
-#ifndef WINDOWS
 return 0;
-#endif
 }
 #endif /* not LIBRARY */
 
@@ -1311,12 +1051,7 @@ if((IOchannel  = serverFD(IOport,  IOdomain, reconnect)) == NULL)
     exit(1);
     }
 
-#ifdef WINDOWS
-else    IOchannelIsSocketStream = TRUE; 
-
-if(!IOchannelIsSocketStream)
-#endif
-    setbuf(IOchannel,0);
+setbuf(IOchannel,0);
 
 if(!reconnect && !noPromptMode)
     varPrintf(OUT_CONSOLE, banner, OSTYPE, LIBFFI, ".");
@@ -1577,9 +1312,6 @@ while(result)
                 printCell(eval, TRUE, OUT_LOG);
                 writeLog("", TRUE);
                 }
-#ifdef EMSCRIPTEN
-            if(outDevice) fflush(NULL);
-#endif
             }
         if(flag) eval = copyCell(eval);
         }
@@ -1845,14 +1577,12 @@ switch(cell->type)
             --lambdaStackIdx; 
             break;
             }
-#ifndef EMSCRIPTEN
         /* simple ffi with CDECL or DLL and extended libffi */
-        if(pCell->type & IMPORT_MASK) 
+        if(pCell->type & IMPORT_MASK)
             {
-            result = executeLibfunction(pCell, args->next);  
+            result = executeLibfunction(pCell, args->next);
             break;
             }
-#endif
         /* implicit indexing or resting for list, array or string 
         */
         if(args->next != nilCell)
@@ -3148,11 +2878,7 @@ switch(device)
         if(IOchannel == stdin)
             {
             printf("%s", buffer);
-#if defined(MAC_OSX) || defined(_BSD) /* 10.7.3 */
-            fflush(NULL);
-#else
             if(!isTTY) fflush(NULL);
-#endif
             }
         else if(IOchannel != NULL) 
             fprintf(IOchannel, "%s", buffer);
@@ -3248,10 +2974,6 @@ switch(cell->type)
         break;
     case CELL_IMPORT_CDECL:
     case CELL_IMPORT_FFI:
-#if defined(WINDOWS) || defined(CYGWIN)
-    case CELL_IMPORT_DLL:
-#endif
-
 #ifdef FFI
         if(cell->type == CELL_IMPORT_FFI)
             varPrintf(device,"%s@%lX", (char *)((FFIMPORT *)cell->aux)->name,
@@ -3441,9 +3163,6 @@ switch(symbolType(sPtr))
     case CELL_PRIMITIVE:
     case CELL_IMPORT_CDECL:
     case CELL_IMPORT_FFI:
-#if defined(WINDOWS) || defined(CYGWIN) 
-    case CELL_IMPORT_DLL:
-#endif
         break;
     case CELL_SYMBOL:
     case CELL_DYN_SYMBOL:
@@ -3923,7 +3642,6 @@ if(linkFlag)
     sourceLen = *((int *) (linkOffset + 4));
 else sourceLen = MAX_FILE_BUFFER;
 
-#ifndef EMSCRIPTEN
 if(my_strnicmp(fileName, "http://", 7) == 0)
     {
     result = getPutPostDeleteUrl(fileName, nilCell, HTTP_GET, CONNECT_TIMEOUT);
@@ -3934,7 +3652,6 @@ if(my_strnicmp(fileName, "http://", 7) == 0)
     currentContext = contextSave;
     return(result);
     }
-#endif
 
 if(makeStreamFromFile(&stream, fileName, sourceLen + 4 * MAX_STRING, offset) == 0) 
     return(NULL);
@@ -3974,13 +3691,8 @@ char * buffer;
 int size, offset = 0;
 char * ptr;
 
-#ifdef WINDOWS
-/* gets full path of currently executing newlisp.exe */
-pathname = win_getExePath(alloca(PATH_MAX));
-#else /* Unix */
-if(strchr(pathname, '/') == NULL) 
+if(strchr(pathname, '/') == NULL)
     pathname = which(pathname, alloca(PATH_MAX));
-#endif
 
 size = readFile(pathname, &buffer);
 sourceLen = (size_t)fileSize(source);
@@ -4605,11 +4317,7 @@ else if(cell->type == CELL_LONG)
     *number = cell->contents;
 else if(cell->type == CELL_FLOAT)
     {
-#ifdef WINDOWS
-    if(isnan(*(double *)&cell->aux) || !_finite(*(double *)&cell->aux)) *number = 0;
-#else
-    if(isnan(*(double *)&cell->aux)) *number = 0; 
-#endif
+    if(isnan(*(double *)&cell->aux)) *number = 0;
     else if(*(double *)&cell->aux >  4294967295.0) *number = 0xFFFFFFFF;
     else if(*(double *)&cell->aux < -2147483648.0) *number = 0x80000000;
     else *number = *(double *)&cell->aux;
@@ -4743,11 +4451,7 @@ else if(cell->type == CELL_LONG)
     *number = cell->contents;
 else if(cell->type == CELL_FLOAT)
     {
-#ifdef WINDOWS
-    if(isnan(*(double *)&cell->aux) || !_finite(*(double *)&cell->aux)) *number = 0;
-#else
-    if(isnan(*(double *)&cell->aux)) *number = 0; 
-#endif
+    if(isnan(*(double *)&cell->aux)) *number = 0;
     else if(*(double *)&cell->aux >  4294967295.0) *number = 0xFFFFFFFF;
     else if(*(double *)&cell->aux < -2147483648.0) *number = 0x80000000;
     else *number = *(double *)&cell->aux;
@@ -5012,9 +4716,7 @@ return(params->next);
 
 CELL * p_setLocale(CELL * params)
 {
-#ifndef ANDROID
 struct lconv * lc;
-#endif
 char * locale;
 UINT category;
 CELL * cell;
@@ -5035,17 +4737,12 @@ if(locale == NULL)
 
 stringOutputRaw = (strcmp(locale, "C") == 0);
 
-#ifndef ANDROID
-lc = localeconv();  
+lc = localeconv();
 lc_decimal_point = *lc->decimal_point;
-#endif
+
 cell = getCell(CELL_EXPRESSION);
 addList(cell, stuffString(locale));
-#ifdef ANDROID
-addList(cell, stuffStringN(".", 1));
-#else
 addList(cell, stuffStringN(lc->decimal_point, 1));
-#endif
 return(cell);
 }
 
@@ -5289,34 +4986,6 @@ if(proc != nilCell)
 
 return(resultCell);
 }
-
-#ifdef EMSCRIPTEN
-extern char *emscripten_run_script_string(const char *script);
-char * evalJSbuff = NULL;
-
-char * evalStringJS(char * cmd, size_t len)
-{
-if(evalJSbuff != NULL) free(evalJSbuff);
-
-evalJSbuff = callocMemory(len + 1);
-memcpy(evalJSbuff, cmd, len);
-
-return(emscripten_run_script_string(evalJSbuff));
-}
-
-
-CELL * p_evalStringJS(CELL * params)
-{
-char * cmd;
-size_t len;
-char * result;
-
-getStringSize(params, &cmd, &len, TRUE);
-result = evalStringJS(cmd, len);
-
-return(stuffString(result));
-}
-#endif
 
 
 CELL * p_curry(CELL * params)
@@ -7006,9 +6675,6 @@ if(sPtr != NIL_SYM && sPtr != NULL)
     /* don't save primitives, symbols containing nil and the trueSymbol */
     else if(type != CELL_PRIMITIVE && type != CELL_NIL
         && sPtr != trueSymbol && type != CELL_IMPORT_CDECL && type != CELL_IMPORT_FFI
-#if defined(WINDOWS) || defined(CYGWIN)
-        && type != CELL_IMPORT_DLL
-#endif
         )
         if(*sPtr->name != '$') printSymbol(sPtr, device);
     saveSymbols(sPtr->right, device);
@@ -7021,10 +6687,8 @@ CELL * p_save(CELL * params)
 char * fileName;
 STREAM strStream = {NULL, NULL, 0, 0, 0};
 SYMBOL * contextSave;
-#ifndef EMSCRIPTEN
 CELL * result;
 CELL * dataCell;
-#endif
 int errorFlag = 0;
 
 contextSave = currentContext;
@@ -7035,7 +6699,6 @@ params = getString(params, &fileName);
 openStrStream(&strStream, MAX_STRING, 0);
 serializeSymbols(params, (UINT)&strStream);
 
-#ifndef EMSCRIPTEN
 /* check for URL format */
 if(my_strnicmp(fileName, "http://", 7) == 0)
     {
@@ -7046,7 +6709,6 @@ if(my_strnicmp(fileName, "http://", 7) == 0)
     errorFlag = (strncmp((char *)result->contents, "ERR:", 4) == 0);
     }
 else
-#endif
     errorFlag = writeFile(fileName, strStream.buffer, strStream.position, "w");
 
 closeStrStream(&strStream);
@@ -7546,9 +7208,6 @@ switch(operand)
     case CELL_PRIMITIVE:
         if(params->type == CELL_IMPORT_CDECL
         || params->type == CELL_IMPORT_FFI
-#if defined(WINDOWS) || defined(CYGWIN)
-        || params->type == CELL_IMPORT_DLL 
-#endif
         )
             return(trueCell);
         break;
@@ -7606,18 +7265,12 @@ CELL * p_exit(CELL * params)
 {
 UINT result;
 
-#ifndef EMSCRIPTEN
-if(daemonMode) 
+if(daemonMode)
     {
     fclose(IOchannel);
-#ifndef WINDOWS
     IOchannel = NULL;
-#endif
     longjmp(errorJump, ERR_USER_RESET);
     }
-#else
-return(nilCell);
-#endif
 
 if(params != nilCell) getInteger(params, &result);
 else result = 0;
@@ -7630,16 +7283,6 @@ purgeSpawnList(TRUE);
 exit(result);
 return(trueCell);
 }
-
-
-#ifdef EMSCRIPTEN
-void emscriptenReload(void)
-{
-char * cmd = "location.reload();";
-printf("# newLISP is reloading ...\n");
-evalStringJS(cmd, strlen(cmd));
-}
-#endif
 
 
 CELL * p_reset(CELL * params)
@@ -7661,21 +7304,12 @@ if(params != nilCell)
         return(stuffIntegerList(2, blockCountBefore, blockCount)); /* 10.3.3 */
         }
 #ifndef LIBRARY
-#ifndef WINDOWS
     else
         execv(MainArgs[0], MainArgs);
 #endif
-#endif
-#ifdef EMSCRIPTEN
-        emscriptenReload();
-#endif
     }
 else
-#ifndef EMSCRIPTEN
     longjmp(errorJump, ERR_USER_RESET);
-#else
-    return(nilCell);
-#endif
 
 return(trueCell);
 }
@@ -7712,8 +7346,6 @@ return(setEvent(params, &readerEvent, "$reader-event"));
 }
 
 
-#ifndef WINDOWS
-
 CELL * p_timerEvent(CELL * params)
 {
 double seconds;
@@ -7748,9 +7380,7 @@ if(params != nilCell)
   
 return(makeCell(CELL_SYMBOL, (UINT)timerEvent));
 }
-#endif
 
-#ifndef EMSCRIPTEN
 #define IGNORE_S 0
 #define DEFAULT_S 1
 #define RESET_S 2
@@ -7785,7 +7415,6 @@ else if(params != nilCell)
   
 return(makeCell(CELL_SYMBOL, (UINT)symHandler[sig - 1]));
 }
-#endif
 
 CELL * p_lastError(CELL * params)
 {

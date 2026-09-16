@@ -10,13 +10,8 @@
 (set 'N
 	(case ostype
 		("Linux" 1000)
-		("Cygwin" 1000)
-		("BSD" 1000)
 		("OSX" 10000)
-		("Tru64Unix" 1000)
-		("Solaris" 1000)
-		("SunOS" 1000)
-		(true (println ">>>>> UDP Not supported on this OS - will exit") 
+		(true (println ">>>>> UDP Not supported on this OS - will exit")
 			(exit))
 	)
 )

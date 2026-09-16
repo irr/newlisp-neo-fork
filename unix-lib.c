@@ -34,21 +34,15 @@ extern int newlispLibConsoleFlag;
 int libInitialized = 0;
 
 #ifdef MAC_OSX
-#ifdef EMSCRIPTEN
-#define LIBNAME "newlisp-js-lib.js"
-#else
 #define LIBNAME "newlisp.dylib"
-#endif
 #else
 #define LIBNAME "newlisp.so"
 #endif
 
 void initializeMain(void)
 {
-#ifndef EMSCRIPTEN
 char name[MAX_LINE];
 char * initFile;
-#endif
 
 opsys += 64;
 
@@ -65,10 +59,6 @@ opsys += 1024;
 initFFI();
 #endif
 
-#ifdef EMSCRIPTEN
-opsys += 2048;
-#endif
-
 bigEndian = (*((char *)&bigEndian) == 0);
 
 
@@ -81,8 +71,7 @@ sysEvalString(preLoad, mainContext, nilCell, EVAL_STRING);
 
 
 IOchannel = stdin;
-#ifndef EMSCRIPTEN
-initDefaultInAddr(); 
+initDefaultInAddr();
 
 initFile = getenv("NEWLISPLIB_INIT");
 if(initFile)
@@ -91,7 +80,6 @@ if(initFile)
     name[MAX_LINE - 1] = 0;
     loadFile(name, 0, 0, mainContext);
     }
-#endif
 
 libInitialized = 1;
 reset();
@@ -137,10 +125,7 @@ newlispLibConsoleFlag = flag;
 return(flag);
 }
 
-#ifdef EMSCRIPTEN
-/* for callbacks 'eval-string-js' is used see p_evalStringJS in newlisp.c */
-#else
-/* callbacks from newlisp library into caller 
+/* callbacks from newlisp library into caller
 
 currently only tested with newLISP as caller:
 
@@ -181,5 +166,4 @@ pCell->aux = (UINT)symbol->name;
 
 return(funcAddr);
 }
-#endif
 /* eof */

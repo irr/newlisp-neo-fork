@@ -691,11 +691,7 @@ switch(op)
     case OP_ISNAN:
         return (isnan(floatN) ? trueCell : nilCell);
     case OP_ISINF:
-#ifdef SOLARIS
-        return((isnan(floatN - floatN)) ? trueCell : nilCell);
-#else
         return(isinf(floatN) ? trueCell : nilCell);
-#endif
     default: break;
     }
 
@@ -1744,24 +1740,6 @@ if (t < 0) t += 0x7fffffff;
 randseed = t;
 return (t);
 }
-
-#ifdef ALTERNATIVE_MY_RANDOM /* used for EMSCRIPTEN before v1.29 */
-int  m_w = 0x12345678;    /* must not be zero, nor 0x464fffff */
-int  m_z = 0x23456789;    /* must not be zero, nor 0x9068ffff */
- 
-long int random(void)
-{
-m_z = 36969 * (m_z & 65535) + (m_z >> 16);
-m_w = 18000 * (m_w & 65535) + (m_w >> 16);
-return (((m_z << 16) + m_w)  & 0x7fffffff);  /* 31-bit result */
-}
-
-void srandom(unsigned int init)
-{
-m_z = init;
-m_w = 3 * init;
-}
-#endif
 
 /* ----------------------- betai and gammaln fucntions ----------------------*/
 
@@ -3870,15 +3848,9 @@ else if(cell->type == CELL_LONG)
     num = intToBigint((INT64)cell->contents, &size);
 else if(cell->type == CELL_FLOAT)
     {
-#ifdef WINDOWS
-    if(isnan(*(double *)&cell->aux) || !_finite(*(double *)&cell->aux)) 
+    if(isnan(*(double *)&cell->aux))
         num = intToBigint(0, &size);
     num = floatToBigint(*(double *)&cell->aux, &size);
-#else
-    if(isnan(*(double *)&cell->aux)) 
-        num = intToBigint(0, &size);
-    num = floatToBigint(*(double *)&cell->aux, &size);
-#endif
     }
 #else /* NEWLISP64 */
 if(cell->type == CELL_LONG)
@@ -4484,11 +4456,7 @@ int decDigits, bigDigits;
 int inum, i, sign;
 int * numPtr;
 
-#ifdef SOLARIS
-        if(isnan(fnum - fnum))
-#else
         if(isinf(fnum))
-#endif
     errorProcExt2(ERR_CANNOT_CONVERT, stuffFloat(fnum));
         
 sign = fnum < 0 ? -1 : 1;

@@ -22,56 +22,26 @@ rm -f config.h makefile_build makefile_install
 DEFAULT_CC="cc"
 DARWIN_CC="${DEFAULT_CC}"
 LINUX_CC="gcc"
-BSD_CC="${DEFAULT_CC}"
-SUNOS_CC="gcc"
-AIX_CC="xlc_r"
-TRU64_CC="cc"
-WIN32_CC="gcc"
-OS2_CC="${DEFAULT_CC}"
 
 DEFAULT_CFLAGS=" -Wall -Wno-uninitialized -fno-strict-aliasing -O2 -c"
 DARWIN_CFLAGS=" -Wall -Wno-long-long -Wno-strict-aliasing -O2 -c"
 LINUX_CFLAGS=" -Wall -Wno-long-long -Wno-strict-aliasing -O2 -c"
-BSD_CFLAGS=" -Wall -Wno-uninitialized -Wno-long-long -fno-strict-aliasing -O2 -c"
-SUNOS_CFLAGS=" -Wall -pedantic -Wno-uninitialized -Wno-long-long -fno-strict-aliasing -O2 -c"
-AIX_XLCFLAGS=" -O2 -c"
-AIX_GCCFLAGS=" -Wall -pedantic -Wno-uninitialized -Wno-long-long -fno-strict-aliasing -O2 -c"
-TRU64_CFLAGS=" -ieee -pedantic -O3 -c -D_POSIX_PII_SOCKET"
-WIN32_CFLAGS=" -Wall -Wno-uninitialized -Wno-long-long -O1 -c"
-OS2_CFLAGS=" -Wall -pedantic -Wno-uninitialized -Wno-long-long -Wno-strict-aliasing -O2 -c -s"
 
 DEFAULT_LDFLAGS="-lm"
 DARWIN_LDFLAGS="${DEFAULT_LDFLAGS}"
 LINUX_LDFLAGS="-lm -ldl"
-BSD_LDFLAGS="${DEFAULT_LDFLAGS}"
-SUNOS_LDFLAGS="-lm -ldl -lrt -lsocket -lnsl"
-AIX_LDFLAGS="-lm -ldl -lrt -lnsl"
-TRU64_LDFLAGS="-lm -lrt -ldb -lbsd"
-WIN32_LDFLAGS="-lws2_32"
-OS2_LDFLAGS="-Zomf -Zmt -lm -ldl"
 
 DEFAULT_OBJS="newlisp.o nl-symbol.o nl-math.o nl-list.o nl-liststr.o nl-string.o nl-filesys.o \
 	nl-sock.o nl-import.o nl-xml-json.o nl-web.o nl-matrix.o nl-debug.o pcre.o"
 
 DEFAULT_STRIP="strip"
-WIN32_STRIP="strip"
 
 DEFAULT_TARG="newlisp"
-WIN32_TARG="newlisp.exe"
-OS2_TARG="newlisp.exe"
 
 echo
 case `uname` in 
 	Darwin) true ${os_type:=MAC_OSX} ;;
 	Linux)  true ${os_type:=LINUX} ;;
-	FreeBSD) true ${os_type:=_BSD} ;;
-	NetBSD) true ${os_type:=_BSD} ;;
-	OpenBSD) true ${os_type:=_BSD} ;;
-	SunOS) true ${os_type:=SUNOS} ;;
-	AIX) true ${os_type:=AIX} ;; 
-	OSF1) true ${os_type:=TRU64} ;;
-	MINGW*) true ${os_type:=WINDOWS} ;;
-	OS/2) true ${os_type:=OS2} ;;
 	*)
 		echo Could not discover your OS platform use one of the following commands:
 		make help
@@ -86,33 +56,6 @@ if   [ ${os_type} = MAC_OSX ] ; then
 elif [ ${os_type} = LINUX ] ; then
 	DEFAULT_CFLAGS="${LINUX_CFLAGS}"
 	DEFAULT_LDFLAGS="${LINUX_LDFLAGS}"
-elif [ ${os_type} = _BSD ] ; then
-	DEFAULT_CFLAGS="${BSD_CFLAGS}"
-elif [ ${os_type} = SUNOS ] ; then
-	DEFAULT_CFLAGS="${SUNOS_CFLAGS}"
-	DEFAULT_LDFLAGS="${SUNOS_LDFLAGS}"
-elif [ ${os_type} = AIX ] ; then
-	DEFAULT_CC="${AIX_CC}"
-	DEFAULT_CFLAGS="${AIX_XLCFLAGS}"
-	true ${enable_readline:=no};
-elif [ ${os_type} = TRU64 ] ; then
-	DEFAULT_CC="${TRU64_CC}"
-	DEFAULT_CFLAGS="${TRU64_CFLAGS}"
-	DEFAULT_LDFLAGS="${TRU64_LDFLAGS}"
-elif [ ${os_type} = WINDOWS ] ; then
-	DEFAULT_CC="${WIN32_CC}"
-	DEFAULT_CFLAGS="${WIN32_CFLAGS}"
-	DEFAULT_LDFLAGS="${WIN32_LDFLAGS}"
-	DEFAULT_OBJS="${DEFAULT_OBJS} win-util.o win-path.o"
-	DEFAULT_STRIP="${WIN32_STRIP}"
-	DEFAULT_TARG="${WIN32_TARG}"
-	true ${enable_readline:=no};
-	true ${enable_utf8:=no};
-elif [ ${os_type} = OS2 ] ; then
-	DEFAULT_CFLAGS="${OS2_CFLAGS}"
-	DEFAULT_LDFLAGS="${OS2_LDFLAGS}"
-	DEFAULT_TARG="${OS2_TARG}"
-	true ${enable_readline:=yes};
 fi
 
 # Only LP64 and ILP32 memory models are officially supported, but we'll try to
@@ -444,15 +387,9 @@ EOF
 
 DEFAULT_ARCHFLAGS=""
 if   [ $memory_model = LP64 ] ; then
-	if   [ $os_type = AIX -a ${CC:-${DEFAULT_CC}} = xlc_r ] ; then
-		DEFAULT_ARCHFLAGS="-q64"
-	elif [ $os_type = AIX -a ${CC:-${DEFAULT_CC}} = gcc ] ; then
-    DEFAULT_ARCHFLAGS="-maix64"
-  else
     if ${CC:-${DEFAULT_CC}} -m64 -o test-archflag test-archflag.c 2>/dev/null; then
       DEFAULT_ARCHFLAGS="-m64"
     fi
-	fi
 elif [ $memory_model = ILP32 ] ; then
     if ${CC:-${DEFAULT_CC}} -m32 -o test-archflag test-archflag.c 2>/dev/null; then
       DEFAULT_ARCHFLAGS="-m32"
@@ -463,12 +400,6 @@ rm -f test-archflag*
 STRIPBINARY="	\$(STRIP) \$(TARG)"
 LINKSTAGE="	\$(CC) \$(OBJS) \$(ARCHFLAGS) \$(LDFLAGS) \$(RLFLAGS) \$(FFIFLAGS) -o \$(TARG)"
 COMPILEOBJS="	\$(CC) \$(ARCHFLAGS) \$(CFLAGS) -DNEWCONFIG $<"
-
-if [ $os_type = OS2 ] ; then
-	STRIPBINARY=""
-elif [ $os_type = AIX -a $memory_model = LP64 ] ; then
-	LINKSTAGE=" OBJECT_MODE=64 \$(CC) \$(OBJS) \$(ARCHFLAGS) \$(LDFLAGS) \$(RLFLAGS) \$(FFIFLAGS) -o \$(TARG)"
-fi
 
 # Now let us make the Makefile (makefile_build)
 cat > makefile_build <<EOF

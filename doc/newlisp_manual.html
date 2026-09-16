@@ -144,11 +144,11 @@ tt {
 <br/>
 
 <center>
-<b>For macOS, GNU Linux, Unix and Windows</b>
+<b>For macOS, GNU Linux and Unix</b>
 </center>
 
 <center>
-<h2>User Manual and Reference - newLISP Neo</h2>
+<h2>User Manual and Reference - newLISP Spark</h2>
 </center>
 
 <br/><br/><br/><br/>
@@ -205,8 +205,7 @@ newLISP is a registered trademark of Lutz Mueller.
   <ul>
   <li><a href="#environment">Environment variable NEWLISPDIR</a></li>
   <li><a href="#initialization">The initialization file <tt>init.lsp</tt></a></li>
-  <li><a href="#directories_unix">Directories on Linux, BSD, macOS</a></li>
-  <li><a href="#directories_win">Directories on MS Windows</a></li>
+  <li><a href="#directories_unix">Directories on Linux, macOS</a></li>
   </ul>
 </li>
 
@@ -214,7 +213,6 @@ newLISP is a registered trademark of Lutz Mueller.
 <li><a href="#newlisp-lib">newLISP as a shared library</a></li>
   <ul>
   <li><a href="#newlisp-lib">newLISP as a C library</a></li>
-  <li><a href="#newlisp-js-lib">newLISP as a JavaScript library</a></li>
   </ul>
 <li><a href="#expressions">Evaluating newLISP expressions</a>
   <ul>
@@ -330,7 +328,6 @@ newLISP is a registered trademark of Lutz Mueller.
   <li><a href="#directory_management">File and directory management</a></li>
   <li><a href="#http_api">HTTP networking API</a></li>
   <li><a href="#socket_tcpip">Socket TCP/IP, UDP and ICMP network API</a></li>
-  <li><a href="#JS">API for newLISP in a web browser</a></li>
   <li><a href="#reflection">Reflection and customization</a></li>
   <li><a href="#system_functions">System functions</a></li>
   <li><a href="#importing_libraries">Importing libraries</a></li>
@@ -422,7 +419,7 @@ called <em>contexts</em>.</p>
 
 <p>The result is an easier-to-learn Lisp that is even smaller than most Scheme 
 implementations, but which still has about 350 built-in functions.
-Not much over 200k in size on BSD systems, newLISP is built for high portability
+Not much over 200k in size, newLISP is built for high portability
 using only the most common Unix system C-libraries. It loads quickly and has 
 a small memory footprint. newLISP is as fast or faster than other popular 
 scripting languages and uses very few resources.</p>
@@ -480,12 +477,9 @@ newLISP can be run a as a CGI capable web server using its built-in http mode op
 <p>newLISP has built-in support for distributed processing on networks and parallel,
 concurrent processing on the same CPU with one or more processing cores.</p>
 
-<p>The source distribution can be compiled for Linux, macOS/Darwin, BSDs, many 
-other Unix flavors and MS Windows. newLISP can be compiled as a 64-bit LP64 application 
+<p>The source distribution can be compiled for Linux, macOS/Darwin and other
+Unix flavors. newLISP can be compiled as a 64-bit LP64 application
 for full 64-bit memory addressing.</p>
-
-<p>Since version 10.5.7, newLISP also can be compiled to JavaScript and run in
-a <a href="http://www.newlisp.org/newlisp-js/">web browser</a>.</p>
 
 <br/>
 
@@ -568,8 +562,7 @@ License.html			newLISP-10.3-Release.html	newlisp_manual.html
 </pre>
 
 <p>In the example a <tt>ls</tt> shell command is entered to show HTML files
-in the current directory. On MS Windows a <tt>dir</tt> command could be used
-in the same fashion.</p>
+in the current directory.</p>
 
 <p>The mode can also be used to call an editor or any other program:</p>
 
@@ -741,9 +734,9 @@ estimate of overall dynamic memory usage.</p>
 <p>Small pieces of newLISP code can be executed directly from the command-line:</p>
 
 <pre>
-newlisp -e "(+ 3 4)"  <span class="arw">&rarr;</span> 7 ; On MS Windows and Unix
+newlisp -e "(+ 3 4)"  <span class="arw">&rarr;</span> 7
 
-newlisp -e '(append "abc" "def")'  <span class="arw">&rarr;</span> "abcdef" ; On Unix
+newlisp -e '(append "abc" "def")'  <span class="arw">&rarr;</span> "abcdef"
 </pre>		
 
 <p>The expression enclosed in quotation marks is evaluated, and the result is 
@@ -887,9 +880,8 @@ newlisp -p 4711 &amp;
 </pre>		
 
 <p>
-The <tt>&amp;</tt> indicates to a Unix shell to run the process in the 
-background. On Windows, start the server process without the <tt>&amp;</tt> 
-in the foreground and open a second command window for the telnet application.
+The <tt>&amp;</tt> indicates to a Unix shell to run the process in the
+background.
 Now connect with a telnet:</p>
 
 <pre>
@@ -1009,7 +1001,7 @@ following file types are recognized, and a correctly formatted
 </table><br/>
 
 <p>To serve CGI, HTTP server mode needs a <tt>/tmp</tt> directory on Unix-like
-platforms or a <tt>C:\tmp</tt> directory on MS Windows. newLISP can process GET, PUT,
+platforms. newLISP can process GET, PUT,
 POST and DELETE requests and create custom response headers. CGI files must have
 the extension <tt>.cgi</tt> and have executable permission on Unix. More 
 information about CGI processing for newLISP server modes can be found in the 
@@ -1054,8 +1046,7 @@ can be monitored using <a href="#net-peek">net-peek</a> and
 
 <p>Local domain socket connections are much faster than normal TCP/IP network
 connections and preferred for communications between processes on
-the same local file system in distributed applications. This mode is not
-available on MS Windows.</p>
+the same local file system in distributed applications.</p>
 
 <br/>
 
@@ -1219,11 +1210,7 @@ follow these steps:</p>
 newlisp -x uppercase.lsp uppercase
 
 chmod 755 uppercase # give executable permission
-
-# on Windows the target needs .exe extension
-
-newlisp -x uppercase.lsp uppercase.exe
-</pre>		
+</pre>
 
 <p>newLISP will find a newLISP executable in the execution path of the
 environment and link a copy of the source code.</p>
@@ -1263,10 +1250,9 @@ CONVERT ME TO UPPERCASE
 
 <a name="environment"></a>
 <h3>Environment variable <tt>NEWLISPDIR</tt></h3>
-<p>During startup, newLISP sets the environment variable <tt>NEWLISPDIR</tt>, 
-if it is not set already. On Linux, BSDs, macOS and other Unixes the 
-variable is set to <tt>/usr/local/share/newlisp</tt>. On MS Windows the variable is set 
-to <tt>%PROGRAMFILES%/newlisp</tt>. On most MS Windows systems <tt>%PROGRAMFILES%</tt> evaluates to the <tt>C:\Program Files (x86)\</tt> directory.</p>
+<p>During startup, newLISP sets the environment variable <tt>NEWLISPDIR</tt>,
+if it is not set already. On Linux, macOS and other Unixes the
+variable is set to <tt>/usr/local/share/newlisp</tt>.</p>
 
 <p>The environment variable <tt>NEWLISPDIR</tt> is useful when loading files 
 installed with newLISP:</p>
@@ -1288,11 +1274,10 @@ directory:</p>
 <a name="initialization"></a>
 <h3> The initialization file <tt>init.lsp</tt></h3>
 <p>Before loading any files specified on the command-line, and before the 
-banner and prompt are shown. newLISP tries to load a file <tt>.init.lsp</tt> 
-from the home directory of the user starting newLISP. On macOS, Linux and 
-other Unix the home directory is found in the <tt>HOME</tt> environment 
-variable.  On MS Windows the directory name is contained in the <tt>USERPROFILE</tt>
-or <tt>DOCUMENT_ROOT</tt> environment variable.</p>
+banner and prompt are shown. newLISP tries to load a file <tt>.init.lsp</tt>
+from the home directory of the user starting newLISP. On macOS, Linux and
+other Unix the home directory is found in the <tt>HOME</tt> environment
+variable.</p>
 
 <p>If a <tt>.init.lsp</tt> cannot be found in the home directory newLISP tries
 to load the file <tt>init.lsp</tt> from the directory found in the 
@@ -1314,23 +1299,11 @@ specified.</p>
 <br/>
 
 <a name="directories_unix"></a>
-<h3> Directories on Linux, BSD, macOS and other Unix </h3>
+<h3> Directories on Linux, macOS and other Unix </h3>
 <p>
-The directory <tt>/usr/local/share/newlisp/modules</tt> contains modules with useful 
-functions POP3 mail, etc. The directory <tt>/usr/local/share/doc/newlisp/</tt> 
+The directory <tt>/usr/local/share/newlisp/modules</tt> contains modules with useful
+functions POP3 mail, etc. The directory <tt>/usr/local/share/doc/newlisp/</tt>
 contains documentation in HTML format.</p>
-
-<br/>
-
-<a name="directories_win"></a>
-<h3>Directories on MS Windows</h3>
-
-<p>
-On MS Windows systems, all files are installed in the default directory 
-<tt>%PROGRAMFILES%\newlisp</tt>.  <tt>PROGRAMFILES</tt> is a MS Windows environment 
-variable that resolves to <tt>C:\Program files\newlisp\</tt> in English 
-language installations. The subdirectory <tt>%PROGRAMFILES%\newlisp\modules</tt> 
-contains modules for interfacing to external libraries and sample programs.</p>
 
 <br/>
 <center>
@@ -1340,7 +1313,7 @@ contains modules for interfacing to external libraries and sample programs.</p>
 
 <a name="shared-lib"></a>
 <h2>6. Extending newLISP with shared libraries</h2>
-<p>Many shared libraries on Unix and MS Windows systems can be used to
+<p>Many shared libraries on Unix systems can be used to
 extend newLISP's functionality. Examples are libraries for writing graphical
 user interfaces, libraries for encryption or decryption and libraries for 
 accessing databases.</p>
@@ -1377,9 +1350,8 @@ Code Patterns in newLISP</a> document.</p>
 
 <h3>newLISP as C library</h3>
 
-<p>newLISP can be compiled as a shared C library. On Linux, BSDs and other Unix 
-flavors the library is called <tt>newlisp.so</tt>. On Windows it is called 
-<tt>newlisp.dll</tt> and <tt>newlisp.dylib</tt> on macOS. A newLISP shared 
+<p>newLISP can be compiled as a shared C library. On Linux and other Unix
+flavors the library is called <tt>newlisp.so</tt> and <tt>newlisp.dylib</tt> on macOS. A newLISP shared
 library is used like any other shared library. A newLISP shared library is
 only required for importing newLISP functionality into other programming
 languages.</p>
@@ -1412,23 +1384,8 @@ Code Patterns in newLISP</a> document.</p>
 <a name="newlisp-js-lib"></a>
 <h3>newLISP as a JavaScript library</h3>
 
-<p>Since version 10.5.7, newLISP can be compiled to JavaScript using the
-<a href="https://github.com/kripken/emscripten/wiki">Emscripten</a>
-toolset. The library can be used to run newLISP clientr-side in a web 
-browser, just like JavaScript or HTML. An HTML page can host both,
-newLISP code and JavaScript code together. Both languages can call
-each other. For more information see the <tt>newlisp-js-x.x.x.zip</tt>
-distribution package which contains the library <tt>newlisp-js-lib.js</tt>,
-documentaion and example applications. A small newLISP development
-environment hosted in a browser can also be accessed here:
-<a href="http://www.newlisp.org/newlisp-js/">newlisp-js</a>
-The application contains links to another example application,
-documentation and a download link for the whole package.</p>
+<p>Support for compiling newLISP to JavaScript has been removed.</p>
 
-<p>newLISP compiled as a JavaScript library adds new functions linked 
-from <a href="newlisp_manual.html#JS">API for newLISP in a web browser</a>.
-</p>
- 
 
 <br/>
 <center>
@@ -1437,6 +1394,7 @@ from <a href="newlisp_manual.html#JS">API for newLISP in a web browser</a>.
 <br/>
 
 <a name="expressions"></a>
+
 <h2>8. Evaluating newLISP expressions</h2>
 
 <p>The following is a short introduction to newLISP statement evaluation 
@@ -1908,19 +1866,18 @@ their arguments are called <em>special forms</em>.</p>
 </pre>
 
 
-<p><b>Shell commands</b>: If an <tt>!</tt> (exclamation mark) 
-is entered as the first character on the command-line followed by a shell 
-command, the command will be executed. For example, <tt>!ls</tt> on Unix or 
-<tt>!dir</tt> on MS Windows will display a listing of the present working directory. 
-No spaces are permitted between the <tt>!</tt> and the shell command. Symbols 
+<p><b>Shell commands</b>: If an <tt>!</tt> (exclamation mark)
+is entered as the first character on the command-line followed by a shell
+command, the command will be executed. For example, <tt>!ls</tt> on Unix will
+display a listing of the present working directory.
+No spaces are permitted between the <tt>!</tt> and the shell command. Symbols
 beginning with an <tt>!</tt> are still allowed inside expressions or  on the 
 command-line when preceded by a space. Note: This mode only works when running 
 in the shell and does not work when controlling newLISP from another 
 application.
 </p>
 
-<p>To exit the newLISP shell on Linux/Unix, press <tt>Ctrl-D</tt>; on MS Windows, 
-type <tt>(exit)</tt> or <tt>Ctrl-C</tt>, then the x key.
+<p>To exit the newLISP shell on Linux/Unix, press <tt>Ctrl-D</tt>.
 </p>
 
 <p>Use the <a href="#exec">exec</a> function to access shell commands from 
@@ -4205,8 +4162,7 @@ can be evaluated in the recipients environment.</p>
 <a href="#share">share</a> functionalities to control processes and synchronize
 the passing of computed results via a shared memory interface.</p>
 
-<p>Only on macOS and other Unixes will the Cilk API parallelize tasks.
-On MS Windows, the API is not available.</p>
+<p>Only on macOS and other Unixes will the Cilk API parallelize tasks.</p>
 
 <br/>
 
@@ -4478,7 +4434,7 @@ works correctly.</p>
 
 <p>Many Unix systems have
 a variety of locales available. To find out which ones are available on
-a particular Linux/Unix/BSD system, execute the following command
+a particular Linux/Unix system, execute the following command
 in a system shell:</p>
 
 <pre>
@@ -4601,8 +4557,7 @@ export LC_CTYPE=en_US.UTF-8
 </pre>		
 <p><tt>(3)</tt> The UTF-8&ndash;enabled newLISP automatically switches to the locale found
 on the operating system.  Make sure the command shell
-is UTF-8&ndash;enabled.  The U.S. version of WinXP's <tt>notepad.exe</tt>
-can display Unicode UTF-8&ndash;encoded characters, but the command shell cannot.
+is UTF-8&ndash;enabled.
 On Linux and other Unixes, the Xterm shell can be used
 when started as follows:</p>
 
@@ -5307,19 +5262,6 @@ HTML.</p>
 (print "&lt;A href=\"http://mysite.com\"&gt;" ) ; the cryptic way
 
 (print {&lt;A href="http://mysite.com"&gt;} )   ; the readable way
-
-
-; path names on MS Windows
-
-(set 'path "C:\\MyDir\\example.lsp")
-
-; no escaping when using braces
-
-(set 'path {C:\MyDir\example.lsp})
-
-; on MS Windows the forward slash can be used in path names
-
-(set 'path "C:/MyDir/example.lsp")
 
 ; inner braces are balanced
 (regex {abc{1,2}} line) 
@@ -7437,23 +7379,6 @@ arithmetic">
 
 </table><br/>
 
-<a name="JS"></a>
-<h3>API for newLISP in a web browser</h3>
-
-<table border="0" cellpadding="1" width="95%" align="center" summary="API for newLISP in a web browser">
-
-<tr>
-<td width="16%"><a href="#display-html">display-html</a></td>
-<td width="84%">display an HTML page in a web browser</td>
-</tr>
-
-<tr>
-<td><a href="#eval-string-js">eval-string-js</a></td>
-<td>evaluate JavaScript in the current web browser page</td>
-</tr>
-
-</table><br/>
-
 
 <a name="reflection"></a>
 <h3>Reflection and customization</h3>
@@ -7811,7 +7736,7 @@ arithmetic">
 
 <a name="shell"></a>
 <h2><span class="function">!</span></h2>
-<h4>syntax: (! <em>str-shell-command</em> [<em>int-flags</em>])</h4>
+<h4>syntax: (! <em>str-shell-command</em>)</h4>
 
 <p>Executes the command in <em>str-command</em> by shelling out to the 
 operating system and executing.  This function returns a different value
@@ -7829,28 +7754,7 @@ and capture the standard output or to feed standard input.
 The <a href="#process">process</a> function may be used to launch a 
 non-blocking child process and redirect std I/O and std error to pipes.</p>
 
-<p>On Ms Windows the optional <em>int-flags</em> parameter takes process
-creation flags as defined for the Windows <tt>CreateProcessA</tt> function
-to control various parameters of process creation. The inclusion of this
-parameter &ndash; which also can be <tt>0</tt> &ndash; forces a different 
-creation of the process without a command shell window. This parameter is 
-ignored on Unix.</p>
-
-<pre>
-; on MS Windows
-; close the console of the currently running newLISP process
-(apply (import "kernel32" "FreeConsole")) 
-
-; start another process and wait for it to finish
-(! "notepad.exe" 0)
-
-(exit)
-</pre>
-
-<p>Without the additional parameter, the <tt>!</tt> call would create a
-new command window replacing the closed one.</p>
-
-<p>Note that <tt>!</tt> (exclamation mark) can be also be used as 
+<p>Note that <tt>!</tt> (exclamation mark) can be also be used as
 a command-line shell operator by omitting the parenthesis and space 
 after the <tt>!</tt>:</p>
 
@@ -8330,8 +8234,6 @@ current parent process giving the process id in <em>int-pid</em>. The process
 must have been started using <a href="#spawn">spawn</a>. For processes
 started using <a href="#fork">fork</a>, use <a href="#destroy">destroy</a>
 instead.</p>
-
-<p>The function <tt>abort</tt> is not available on Windows.</p>
 
 
 <!-- example -->
@@ -11234,28 +11136,24 @@ to add up two numbers and return the result:</p>
  03 45 0C add  eax, [ebp+0c]
  5D       pop  ebp
  C3       ret
-
- ; for Win32/stdcall change last line
- C2 08 00 ret 
 </pre>
 
 
-<p>The binary representation is attached to a new function created 
+<p>The binary representation is attached to a new function created
 in newLISP:</p>
 
 
 <pre>
 ; set up 32-bit version of machine code
-; on Windows use 32-bit version of newLISP
 (set 'foo-code (append
      (pack "bbbbbbbbbb" 0x55 0x8B 0xEC 0x8B 0x45 0x08 0x03 0x45 0x0C 0x5D)
-     (if (= ostype "Windows") (pack "bbb" 0xC2 0x08 0x00) (pack "b" 0xC3))))
+     (pack "b" 0xC3)))
 
 ; put a function cell template into foo, protect symbol from deletion
 (constant 'foo print)
 
-; put the correct type, either 'stdcall' or 'cdecl'
-(cpymem (pack "ld" (if (= ostype "Windows") 8456 4360)) (first (dump foo)) 4)
+; put the correct type
+(cpymem (pack "ld" 4360) (first (dump foo)) 4)
 
 ; put the address of foo-code into the new function cell
 (cpymem (pack "ld" (address foo-code)) (+ (first (dump foo)) 12) 4)
@@ -11538,9 +11436,6 @@ translated into results appropriate for the current locale:</p>
 
 (date (date-value) 0 "%A %B %d %Y")    <span class='arw'>&rarr;</span> "Monday March 07 2005"
 
-; suppressing leading 0 on MS Windows using #
-(date (date-value) 0 "%a %#d %b %Y")   <span class='arw'>&rarr;</span> "Mon 7 Mar 2005" 
-
 (set-locale "german")
 
 (date (date-value) 0 "%x") <span class='arw'>&rarr;</span> "07.03.2005"   ; day month year
@@ -11551,9 +11446,9 @@ translated into results appropriate for the current locale:</p>
 </pre>
 
 
-<p>The following table summarizes all format specifiers available 
-on both MS Windows and Linux/Unix platforms.  More format options are 
-available on Linux/Unix. For details, consult the manual page for 
+<p>The following table summarizes all format specifiers available.
+More format options may be
+available on the individual platform. For details, consult the manual page for
 the C function <tt>strftime()</tt> of the individual platform's C library.
 </p>
 
@@ -11589,17 +11484,15 @@ without the date</td></tr>
 <tr><td>%y</td><td>year as a decimal number without a century (range 00&ndash;99)</td></tr>
 
 <tr><td>%Y</td><td>year as a decimal number including the century</td></tr>
-<tr><td>%z</td><td>time zone or name or abbreviation (same as %Z on MS Windows,
-different on Unix)</td></tr>
-<tr><td>%Z</td><td>time zone or name or abbreviation (same as %z on MS Windows,
-different on Unix)</td></tr>
+<tr><td>%z</td><td>time zone or name or abbreviation</td></tr>
+<tr><td>%Z</td><td>time zone or name or abbreviation</td></tr>
 <tr><td>%%</td><td>a literal '%' character</td></tr>
 </table><br/>
 
 <p>
-Leading zeroes in the display of decimal day numbers can be suppressed 
-using <tt>"%-d"</tt> on Linux and FreeBSD and using <tt>"%e"</tt> 
-on OpenBSD, SunOS/Solaris and macOS.  On MS Windows use <tt>"%#d"</tt>.
+Leading zeroes in the display of decimal day numbers can be suppressed
+using <tt>"%-d"</tt> on Linux and using <tt>"%e"</tt>
+on macOS.
 </p>
 
 <p>See also <a href="#date-value">date-value</a>, <a href="#date-list">date-list</a>,
@@ -11652,7 +11545,7 @@ The function <tt>date-parse</tt> returns the number of UTC seconds passed
 since January 1st, 1970 UTC starting with 0 and up to 2147472000 for a date 
 of January 19th, 2038.</p> 
 
-<p>This function is not available on MS Windows platforms. The function was
+<p>The function was
 named <tt>parse-date</tt> in previous versions. The old form is deprecated.</p>
 
 <!-- example -->
@@ -12365,9 +12258,8 @@ all processes with the current user id will be killed, if newLISP is started wit
 super user privileges, all processes except system processes are destroyed.
 </p>
 
-<p>When specifying <em>int-signal</em>, <tt>destroy</tt> works like a Unix <tt>kill</tt> 
-command sending the specified Unix signal to the process in <em>int-pid</em>. 
-This second syntax is not available on MS Windows.</p>
+<p>When specifying <em>int-signal</em>, <tt>destroy</tt> works like a Unix <tt>kill</tt>
+command sending the specified Unix signal to the process in <em>int-pid</em>.</p>
 
 <!-- example -->
 
@@ -12438,9 +12330,7 @@ by opening a file, then <a href="#print">print</a> and <a href="#read-line">read
 work on that file.</p>
 
 <p>Note, that on Unix like operating systems, stdin channel 0 can also be used
-for output and stdout channel 1 can also be used for reading input. This is
-not the case on Windows, where 0 is strictly for input and stdout 1 strictly
-for output.</p>
+for output and stdout channel 1 can also be used for reading input.</p>
  
 <!-- example -->
 
@@ -12518,19 +12408,12 @@ syntax: (directory <em>str-path</em> <em>str-pattern</em> [<em>regex-option</em>
 
 <pre>
 (directory "/bin")
-
-(directory "c:/")
 </pre>
 
 
 <p>
-	The first example returns the directory of <tt>/bin</tt>, 
-	the second line returns a list of directory entries 
-	in the root directory of drive C:. 
-	Note that on MS Windows systems, 
-	a forward slash (<tt>/</tt>) can be included in path names. 
-	When used, a backslash (<tt>\</tt>) must be 
-	preceded by a second backslash.
+	The example returns a list of directory entries
+	in the directory <tt>/bin</tt>.
 </p>
 
 <p>
@@ -12582,44 +12465,6 @@ syntax: (directory <em>str-path</em> <em>str-pattern</em> [<em>regex-option</em>
 (directory? "/etc")             <span class='arw'>&rarr;</span> true
 (directory? "/usr/local/bin/emacs/")  <span class='arw'>&rarr;</span> nil
 </pre>
-
-<br/><br/>
-
-<a name="display-html"></a>
-<h2><span class="function">display-html
-<a href="#JS"><font size="-1">JS</font></a></span></h2>
-<h4>syntax: (display-html <em>str-html</em>)<br/>
-syntax: (display-html <em>str-html</em> <em>bool-flag</em>)</h4>
-
-<p>Using the first syntax, the function replaces the current page in 
-the browser with the HTML page found in <em>str-html</em>.</p> 
-
-<p>If <em>bool-flag</em> evaluates to <tt>true</tt>, the page gets
-opened in a new browser tab and the current page is not affected.</p>
-
-<p>This function is only available on newLISP compiled to JavaScript.</p>
-
-<pre>
-(set 'page [text]
-&lt;html&gt;
-&lt;head&gt;
-&lt;title&gt;Hello App&lt;/title&gt;
-&lt;/head&gt;
-&lt;body&gt;
-&lt;h2&gt;Hello World&lt;/h2&gt;
-&lt;/body&gt;
-&lt;/html&gt;
-[/text])
-
-; open the page in a new browser tab
-(display-html page true) <span class='arw'>&rarr;</span> "92"
-</pre>
-
-<p>The function returns the length of the HTML document displayed as a string.
-</p>
-
-<p>See also the function <a href="#eval-string-js">eval-string-js</a> for
-evaluation of JavaScript in the current page.</p>
 
 <br/><br/>
 
@@ -13269,8 +13114,7 @@ in the environment.</p>
 and value pair in <em>value-str</em>) sets or creates 
 an environment variable. If <em>value-str</em> is the 
 empty string <tt>""</tt>, then the variable is completely
-removed from the environment except when running on Solaris,
-where the variable stays with an empty string.</p>
+removed from the environment.</p>
 
 <!-- example -->
 
@@ -13469,35 +13313,6 @@ where to start evaluation.</p>
 without evaluating it.</p>
 
 <br/><br/>
-
-<a name="eval-string-js"></a>
-<h2><span class="function">eval-string-js
-<a href="#JS"><font size="-1">JS</font></a></span></h2>
-<h4>syntax: (eval-string-js <em>str-JavaScript-source</em>)</h4>
-<p>The function takes a program source in <em>str-JavaScript-source</em>
-and returns the result in a string.</p>
-
-<p>This function is only available on newLISP compiled to JavaScript.</p>
-
-<pre>
-(eval-string-js "window.prompt('Enter some text:', '')")
-
-; for single and double quotes inside a string passed to a
-; JavaScropt function, single and double quotes must be
-; preceded by a backslash \ and the whole string passed
-; to eval-string-js limited by [text], [/text] tags.
-
-(eval-string-js [text]alert('A double quote: \" and a single quote: \' ')[/text])
-
-(eval-string-js "6 * 7")
-</pre>
-
-<p>The first expression will pop up a dialog box to enter text. The function
-will return the text string entered. The second expression will return the
-string <tt>42</tt>.</p>
-
-<p>See also the function <a href="#display-html">display-html</a> for displaying
-an HTML page in the browser.</p>
 
 <br/><br/>
 
@@ -15037,8 +14852,8 @@ strings. 64-bit numbers will be truncated to 32-bit on
 <tr><td>lX</td><td>hexadecimal uppercase (32/64-bit)</td></tr>
 </table><br/>
 
-<p>For 64-bit numbers use the following format strings on Unix-like 
-operating systems and on MS Windows (not supported on TRU64):</p>
+<p>For 64-bit numbers use the following format strings on Unix-like
+operating systems:</p>
 
 <table summary="format characters">
 <tr align="left"><th>format</th><th>description</th></tr>
@@ -15048,24 +14863,9 @@ operating systems and on MS Windows (not supported on TRU64):</p>
 <tr><td>llX</td><td>hexadecimal uppercase(64-bit)</td></tr>
 </table><br/>
 
-<p>On Windows platforms only the following characters apply 
-for 64 bit numbers:</p>
-
-<table summary="format characters">
-<tr align="left"><th>format</th><th>description</th></tr>
-<tr><td>I64d</td><td>decimal (64-bit)</td></tr>
-<tr><td>I64u</td><td>unsigned decimal (64-bit)</td></tr>
-<tr><td>I64x</td><td>hexadecimal (64-bit)</td></tr>
-<tr><td>I64X</td><td>hexadecimal uppercase(64-bit)</td></tr>
-</table><br/>
-
 <p>
-	Other text may occur between, 
+	Other text may occur between,
 	before, or after the format specs.
-</p>
-	
-<p>Note that on Tru64 Unix the format character <tt>i</tt> can be used instead
-of <tt>d</tt>.
 </p>
 
 <br/><br/>
@@ -15104,10 +14904,7 @@ of <tt>d</tt>.
                                 
 (format "%x %X" -1 -1)  <span class='arw'>&rarr;</span> "ffffffff FFFFFFFF"
 
-; 64 bit numbers on Windows
-(format "%I64X" 123456789012345678)  <span class='arw'>&rarr;</span> "1B69B4BA630F34E"
-
-; 64 bit numbers on Unix (except TRU64)
+; 64 bit numbers
 (format "%llX" 123456789012345678)   <span class='arw'>&rarr;</span> "1B69B4BA630F34E"
                                 
 (format "%c" 65)  <span class='arw'>&rarr;</span> "A"
@@ -16067,8 +15864,8 @@ and crash newLISP or leave it in an unstable state.</p>
 <h3>The simple <tt>import</tt> syntax</h3>
 <p>Most library functions can be imported using the simpler first syntax. 
 This form is present on <u>all</u> compile flavors of newLISP. The API expects
-all function arguments to be passed on the stack in either <em>cdecl</em> or <em>stdcall</em> 
-conventions. On 32-bit platforms, integers, pointers to strings and buffers sometimes floating 
+all function arguments to be passed on the stack in <em>cdecl</em>
+conventions. On 32-bit platforms, integers, pointers to strings and buffers sometimes floating
 point values can be passed as parameters. On 64-bit platforms only 
 integers  can be passed but no floating point values. 
 As return values only 32-bit or 64-bit values and pointers are allowed. 
@@ -16108,74 +15905,22 @@ environment use the <a href="#extended_import">extended <tt>import</tt> syntax</
 ;; define LIBC platform independent
 
 (define LIBC (lookup ostype '(
-("Windows" "msvcrt.dll")
+("Linux" "libc.so.6")
 ("OSX" "libc.dylib"))))
 
 (import LIBC "printf")
 (printf "%g %s %d %c\n" 1.23 "hello" 999 65)
 <b>1.23 hello 999 A</b>
 <span class='arw'>&rarr;</span> 17 ; return value
-
-;; import MS Windows DLLs in 32-bit versions 
-
-(import "kernel32.dll" "GetTickCount")  <span class='arw'>&rarr;</span> GetTickCount
-(import "user32.dll" "MessageBoxA")     <span class='arw'>&rarr;</span> MessageBoxA
-(GetTickCount)                          <span class='arw'>&rarr;</span> 3328896
 </pre>
 
-<p>In the first example, the string "1.23 hello 999 A" 
-is printed as a side effect, and the value 17 (number of 
-characters printed) is returned. Any C function can be imported 
+<p>In the first example, the string "1.23 hello 999 A"
+is printed as a side effect, and the value 17 (number of
+characters printed) is returned. Any C function can be imported
 from any shared library in this way.
 </p>
 
-<p>The message box example pops up a Windows dialog box, which may be hidden 
-behind the console window.  The console prompt does not return until the 
-'OK' button is pressed in the message box.</p>
-
-<pre>
-;;this pops up a message box
-
-(MessageBoxA 0 "This is the body" "Caption" 1) 
-</pre>
-
-<p>The other examples show several imports of MS Windows DLL functions and 
-the details of passing values <em>by value</em> or <em>by reference</em>. 
-Whenever strings or numbers are passed by reference, space must be 
-reserved beforehand.</p>
-
-
-<pre>
-(import "kernel32.dll" "GetWindowsDirectoryA")
-
-;; allocating space for a string return value
-(set 'str (dup "\000" 64))  ; reserve space and initialize
-
-(GetWindowsDirectoryA str (length str))
-
-str  <span class='arw'>&rarr;</span> "C:\\WINDOWS\000\000\000 ... "
-
-;; use trim or get-string to cut of trailing binary zeros
-(get-string str)  <span class='arw'>&rarr;</span> "C:\\WINDOWS"
-(trim str)        <span class='arw'>&rarr;</span> "C:\\WINDOWS"
-
-(import "kernel32.dll" "GetComputerNameA")
-
-;; allocate memory and initialize to zeros
-(set 'str (dup "\000" 64))
-(set 'len (length str)
-
-;; call the function
-;; the length of the string is passed as address reference 
-;; string str is automatically past by address (C pointer)
-(GetComputerNameA str (address len)) 
-
-str  <span class='arw'>&rarr;</span> "LUTZ-PC\000\000 ... "
-
-(trim str)  <span class='arw'>&rarr;</span> "LUTZ-PC"
-</pre>
-
-<p><tt>import</tt> returns the address of the function, which can be 
+<p><tt>import</tt> returns the address of the function, which can be
 used to assign a different name to the imported function.</p>
 
 <pre>
@@ -16186,20 +15931,12 @@ used to assign a different name to the imported function.</p>
 <span class='arw'>&rarr;</span> "hola 123"
 </pre>
 
-<p>The MS Windows and Cygwin versions of newLISP uses standard call <em>stdcall</em> conventions 
-to call DLL library routines by default.  This is necessary for calling DLLs that belong 
-to the MS Windows operating system.  Most third-party DLLs are compiled for 
-C declaration <em>cdecl</em> calling conventions and may need to specify the string 
-<tt>"cdecl"</tt> as an additional last argument when importing functions. 
-newLISP compiled for macOS, Linux and other Unix systems uses the 
-<em>cdecl</em> calling conventions by default and ignores any additional string.</p>
+<p>newLISP compiled for macOS, Linux and other Unix systems uses the
+<em>cdecl</em> calling conventions by default.  Most shared libraries are compiled for
+C declaration <em>cdecl</em> calling conventions.  If necessary, the string
+<tt>"cdecl"</tt> can be specified as an additional last argument when importing functions.</p>
 
-<pre>
-;; force cdecl calling conventions on MS Windows
-(import "sqlite.dll" "sqlite_open" "cdecl")  <span class='arw'>&rarr;</span> sqlite_open &lt;673D4888&gt;
-</pre>
-
-<p>Imported functions may take up to fourteen arguments. Note that 
+<p>Imported functions may take up to fourteen arguments. Note that
 floating point arguments take up two spaces each
 (e.g., passing five floats takes up ten of the fourteen parameters).
 </p>
@@ -16297,9 +16034,8 @@ de-allocated manually if there's no call in the imported API to do so.
 See the <a href="http://www.newlisp.org/CodePatterns.html">Code Patterns in newLISP</a>
 document for an example.</p>
 
-<p>In case of calling foreign functions with passing by reference, 
-memory for variables needs to be allocated beforehand by newLISP
-&mdash; see import of <tt>GetWindowsDirectoryA</tt> above &mdash; 
+<p>In case of calling foreign functions with passing by reference,
+memory for variables needs to be allocated beforehand by newLISP,
 and hence, memory needs not be deallocated manually, because it is
 managed automatically by newLISP.</p>
 
@@ -18642,9 +18378,7 @@ an empty string "" is output. For closed ports the function outputs
 numbers in the shell window staying on the same line.</p>
 
 <p>On Unix <tt>net-connect</tt> may return with <tt>nil</tt> before
-the timeout expires, when the port is not available. On MS Windows 
-<tt>net-connect</tt> will always wait for the timeout to expire before
-failing with <tt>nil</tt>.</p>
+the timeout expires, when the port is not available.</p>
 
 <h3>UDP communications</h3>
 
@@ -18807,10 +18541,6 @@ successfully; otherwise, returns <tt>nil</tt>.
 
 <pre>
 (net-connect "/tmp/mysocket")  <span class='arw'>&rarr;</span> 3
-
-; on OS/2 use "\\socket\\" prefix
-
-(net-connect "\\socket\\mysocket")
 </pre>
 
 
@@ -18820,8 +18550,7 @@ using <a href="#net-listen">net-listen</a> and <a href="#net-accept">net-accept<
 After the connection has been established the functions <a href="#net-select">net-select</a>,
 <a href="#net-send">net-send</a> and <a href="#net-receive">net-receive</a> can be used
 as usual for TCP/IP stream communications. This type of connection can be used as a fast
-bi-directional communications channel between processes on the same file system.
-This type of connection is not available on MS Windows platforms.</p>
+bi-directional communications channel between processes on the same file system.</p>
 
 <br/><br/>
 
@@ -18992,7 +18721,7 @@ is returned.</p>
 (set 'prog '(+ 3 4))
 (net-eval "192.168.1.94" 4711 prog)           <span class='arw'>&rarr;</span> 7
 
-; specify a local-domain Unix socket (not available on MS Windows)
+; specify a local-domain Unix socket
 (net-eval "/tmp/mysocket" 0 '(+ 3 4))         <span class='arw'>&rarr;</span> 7
 </pre>
 
@@ -19247,10 +18976,6 @@ otherwise, returns <tt>nil</tt>.</p>
 <pre>
 (net-listen "/tmp/mysocket")  <span class='arw'>&rarr;</span> 5
 
-; on OS/2 use "\\socket\\" prefix
-
-(net-listen "\\socket\\mysocket")
-
 (net-accept 5)
 </pre>
 
@@ -19258,10 +18983,9 @@ otherwise, returns <tt>nil</tt>.</p>
 <p>A <em>local domain</em> file system socket is created and listened on.
 A client will try to connect using the same <em>str-file-path</em>.
 After a connection has been accepted the functions <a href="#net-select">net-select</a>,
-<a href="#net-send">net-send</a> and <a href="#net-receive">net-receive</a> can be used 
+<a href="#net-send">net-send</a> and <a href="#net-receive">net-receive</a> can be used
 as usual for TCP/IP stream communications. This type of connection can be used as a fast
- bi-directional communications channel between processes on the same file system.
-This type of connection is not available on MS Windows platforms.</p>
+ bi-directional communications channel between processes on the same file system.</p>
 
 
 <h3>UDP communications</h3>
@@ -19402,10 +19126,10 @@ and <a href="#net-receive-from">net-receive-from</a>.
 
 <h3>Packet divert sockets and ports</h3>
 
-<p>If <em>str-mode</em> is specified as <tt>"divert"</tt> or <tt>"d"</tt>, 
-a divert socket can be created for a divert port in <em>int-port</em> on 
-BSD like platforms.  The content of IP address in <em>str-ip-addr</em> is 
-ignored and can be specified as an empty string. Only the <em>int-port</em> 
+<p>If <em>str-mode</em> is specified as <tt>"divert"</tt> or <tt>"d"</tt>,
+a divert socket can be created for a divert port in <em>int-port</em> on
+Unix platforms.  The content of IP address in <em>str-ip-addr</em> is
+ignored and can be specified as an empty string. Only the <em>int-port</em>
 is relevant and will be bound to the raw socket returned.</p>
 
 <p>To use the divert option in <tt>net-listen</tt>, newLISP must run in
@@ -19415,9 +19139,9 @@ super-user mode. This option is only available on Unix like platforms.</p>
 to the divert port. Packets may also be written back to a divert socket, 
 in which case they re-enter OS kernel IP packet processing.</p>
 
-<p>Rules for packet diversion to the divert port must be defined using 
-either the <em>ipfw</em> BSD or <em>ipchains</em> Linux configuration
-utilities.</p>
+<p>Rules for packet diversion to the divert port must be defined using
+the <em>ipchains</em> Linux configuration
+utility.</p>
 
 <p>The <a href="#net-receive-from">net-receive-from</a> and
 <a href="#net-send-to">net-send-to</a> functions are used to read
@@ -19440,8 +19164,8 @@ packet:</p>
 </pre>
 
 <p>For more information see the Unix man pages for <em>divert</em>
-and the <em>ipfw</em> (BSDs) or <em>ipchains</em> (Linux) configuration 
-utilities.</p>
+and the <em>ipchains</em> (Linux) configuration
+utility.</p>
 
 <br/><br/>
 
@@ -19514,7 +19238,7 @@ a TCP, UDP or ICMP header and optional data. newLISP must be run with
 super user privileges, and this function is only available on macOS,
 Linux and other Unix operating systems and only for IPv4.
 Currently <tt>net-packet</tt> is IPv4 only and has been tested on
-macOS, Linux and OpenBSD.</p> 
+macOS and Linux.</p>
 
 <p>On success the function returns the number of bytes sent. On failure
 the function returns <tt>nil</tt> and both, <a href="#net-error">net-error</a>
@@ -19623,9 +19347,9 @@ to access the local computer's IP number and port number.
 <h4>syntax: (net-ping <em>str-address</em> [<em>int-timeout</em> [<em>int-count</em> <em>bool</em>]]])<br/>
 syntax: (net-ping <em>list-addresses</em> [<em>int-timeout</em> [<em>int-count</em> <em>bool</em>]]])</h4>
 
-<p> This function is only available on Unix-based systems 
+<p> This function is only available on Unix-based systems
 and must be run in superuser mode, i.e. using: <tt>sudo newlisp</tt> to
-start newLISP on macOS or other BSD's, or as the root user on Linux.
+start newLISP on macOS, or as the root user on Linux.
  Broadcast mode and specifying ranges with the <tt>-</tt> (hyphen) or
 <em>*</em> (star) are not available on IPv6 address mode.</p>
 
@@ -19847,11 +19571,10 @@ must previously have been opened
 by either <a href="#net-listen">net-listen</a> 
 or <a href="#net-connect">net-connect</a> 
 (both using the <tt>"udp"</tt> option).
-<em>int-max-size</em> specifies 
-the maximum number of bytes that will be received. 
-On Linux/BSD, if more bytes are received, 
-those will be discarded; on MS Windows, <tt>net-receive-from</tt>
-returns <tt>nil</tt> and closes the socket.
+<em>int-max-size</em> specifies
+the maximum number of bytes that will be received.
+On Linux/macOS, if more bytes are received,
+those will be discarded.
 </p>
 
 <p>On success <tt>net-receive</tt> returns a list of the data string, remote 
@@ -19924,9 +19647,8 @@ and <a href="#net-receive-udp">net-receive-udp</a> functions.
 Receives a User Datagram Protocol (UDP) packet on port <em>int-port</em>,
 reading <em>int-maxsize</em> bytes. 
 If more than <em>int-maxsize</em> bytes are received,
-bytes over <em>int-maxsize</em> are discarded on Linux/BSD; 
-on MS Windows, <tt>net-receive-udp</tt> returns <tt>nil</tt>.
-<tt>net-receive-udp</tt> blocks until a datagram arrives 
+bytes over <em>int-maxsize</em> are discarded on Linux/macOS.
+<tt>net-receive-udp</tt> blocks until a datagram arrives
 or the optional timeout value in <em>int-microsec</em> expires. 
 When setting up communications between datagram sender and receiver, 
 the <tt>net-receive-udp</tt> statement must be set up first.
@@ -20217,7 +19939,7 @@ The data sent is in <em>str-buffer</em>.
 
 <p>The theoretical maximum data size of a UDP packet on an IPv4 system
 is 64K minus IP layer overhead, but much smaller on most Unix flavors.
-8k seems to be a safe size on macOS, BSDs and Linux.</p>
+8k seems to be a safe size on macOS and Linux.</p>
 
 <p>
 No previous setup using <tt>net-connect</tt> 
@@ -20557,8 +20279,7 @@ return a specific member in the result list.</p>
 <tr><td>day of current year</td><td>Jan 1st is 1</td></tr>
 <tr><td>day of current week</td><td> (1&ndash;7) starting Monday</td></tr>
 <tr><td>time zone offset in minutes</td><td> west of GMT including daylight savings bias</td></tr>
-<tr><td>daylight savings time type </td><td> (0&ndash;6) on Linux/Unix
-		or (0&ndash;2) on MS Windows</td></tr>
+<tr><td>daylight savings time type </td><td> (0&ndash;6) on Linux/Unix</td></tr>
 </table><br/>
 
 <p>The second example returns the Coordinated Universal Time (UTC) 
@@ -20589,17 +20310,10 @@ returns <tt>0</tt> (zero) even during daylight savings time (dst).</p>
 <tr><td>5</td><td>Eastern European daylight savings</td></tr>
 <tr><td>6</td><td>Canada dst</td></tr>
 </table>
-<br />
-<table  width="35%" summary="date formatting">
-<tr align="left"><th>Windows type</th><th></th></tr>
-<tr><td>0</td><td>Daylight saving time is not used</td></tr>
-<tr><td>1</td><td>Standard date time range is used</td></tr>
-<tr><td>2</td><td>Daylight date time range is used (daylight savings active)</td></tr> 
-</table>
 
 
 
-<p>See also the <a href="#date">date</a>, 
+<p>See also the <a href="#date">date</a>,
 <a href="#date-list">date-list</a>, 
 <a href="#date-parse">date-parse</a>, 
 <a href="#date-value">date-value</a>, 
@@ -21000,21 +20714,20 @@ newLISP is running on.</p>
 <!-- example -->
 
 <pre>
-ostype  <span class='arw'>&rarr;</span> "Windows"
+ostype  <span class='arw'>&rarr;</span> "Linux"
 </pre>
 
 
-<p>One of the following strings is returned: 
-<tt>"Linux", "BSD", "OSX", "Tru64Unix", "Solaris", "SunOS", "Windows", "Cygwin", or "OS/2"</tt>.
+<p>One of the following strings is returned:
+<tt>"Linux" or "OSX"</tt>.
 </p>
 
 
 <p><tt>ostype</tt> can be used to write platform-independent code:</p>
 
 <pre>
-(if 
+(if
     (= ostype "Linux") (import "libz.so")
-    (= ostype "BSD") (import "libz.so")
     (= ostype "OSX") (import "libz.dylib")
     ...
     (println "cannot import libz on this platform")
@@ -22005,19 +21718,14 @@ process will execute the program specified or immediately die if <em>str-command
 The new process inherits the OS environment from the parent process.</p>
 
 <p>Command line arguments are parsed out at spaces. Arguments containing spaces must be delimited using
-single quotes on macOS and other Unixes. On MS Windows, double quotes are used. The process id returned
+single quotes on macOS and other Unixes. The process id returned
 can be used to destroy the running process using <a href="#destroy">destroy</a>, if the process does
 not exit by itself.</p>
 
 <!-- example -->
 
 <pre>
-(process "c:/WINDOWS/system32/notepad.exe")  <span class='arw'>&rarr;</span> 1894 ; Windows
-; or when in executable path
-(process "notepad.exe")                      <span class='arw'>&rarr;</span> 1894 ; Windows
-
-
-; find out the path of the program to start using exec, 
+; find out the path of the program to start using exec,
 ; if the path is not known
 
 (process (first (exec "which xclock")))  <span class='arw'>&rarr;</span> 22607 ; on Unix
@@ -22059,31 +21767,11 @@ and <a href="#read-line">read-line</a>  or <a href="#write">write</a> and
 
 ;; destroy the process
 (destroy 7916)
-
-;; MS Windows
-(map set '(myin cmdout) (pipe))
-(map set '(cmdin myout) (pipe))
-
-(process "c:/Program Files/newlisp/newlisp.exe -c" cmdin cmdout)
-<span class='arw'>&rarr;</span> 1284
-
-(write-line myout "(+ 3 4)")
-
-(read-line myin) <span class='arw'>&rarr;</span> "7"
-
-;; destroy the process
-(destroy 1284)
 </pre>
 
 
-<p>On MS Windows versions of newLISP, a fourth optional parameter of <em>int-win-option</em> 
-can be specified to control the display status of the application.
-This option defaults to <tt>1</tt> for showing the application's window,
-<tt>0</tt> for hiding it, and <tt>2</tt> for showing it minimized on the Windows 
-launch bar.</p>
-
-<p>On both MS Windows and Linux/Unix systems, standard error will be redirected to 
-standard out by default. On Linux/Unix, an optional pipe handle for standard 
+<p>Standard error will be redirected to
+standard out by default. On Linux/Unix, an optional pipe handle for standard
 error output can be defined in <em>int-unix-pipe-error</em>.</p>
 
 <p>The function <a href="#peek">peek</a> can be used to check for information 
@@ -22933,7 +22621,6 @@ until a key is pressed.</p>
 (read-key)  <span class='arw'>&rarr;</span> 97  ; after hitting the A key
 (read-key)  <span class='arw'>&rarr;</span> 65  ; after hitting the shifted A key
 (read-key)  <span class='arw'>&rarr;</span> 10  ; after hitting [enter] on Linux
-(read-key)  <span class='arw'>&rarr;</span> 13  ; after hitting [enter] on Windows
 
 (read-key true)  <span class='arw'>&rarr;</span> 0 ; when no key has been pressed
 
@@ -22948,8 +22635,8 @@ press <tt>Ctrl-A</tt>.
 </p>
 
 <p>Note that <tt>read-key</tt> will only work when newLISP is running in a
-Unix shell or Windows command shell. It will not work when executed by 
-newLISP Unix shared library or newLISP MS Windows DLL (Dynamic Link Library).
+Unix shell. It will not work when executed by
+newLISP Unix shared library.
 These libraries are not listening to STD input.</p>
 
 <br/><br/>
@@ -23124,7 +22811,7 @@ file path given in <em>str-path</em>. If a path is not given, <tt>"."</tt>
 
 <p>In the second syntax <tt>real-path</tt> returns the full path for an 
 executable found given in <em>str-exe-name</em>. This syntax relies on an 
-environment variable PATH defined on UNIX and Windows systems.</p>
+environment variable PATH defined on UNIX systems.</p>
 
 <pre>
 (real-path "make" true) <span class='arw'>&rarr;</span> "/usr/bin/make"
@@ -23186,8 +22873,6 @@ contains PIDs of processes which have unread messages in their
 send queues. The <tt>(receive pid msg)</tt> statement now can
 be issued non-blocking, because it always is guaranteed to find
 a pending message in a child's message queue.</p>
-
-<p>The <tt>receive</tt> function is not available on MS Windows.</p>
 
 <p>For a more detailed discussion of this function and examples, see the
 <a href="#send">send</a> function.</p>
@@ -23947,9 +23632,8 @@ which may take a few seconds in a heavily loaded system.</p>
 
 <p>In the second syntax, <tt>reset</tt> will stop the current process 
 and start a new clean newLISP process with the same command-line parameters.
-This mode will only work when newLISP was started using its full path-name, 
-e.g. <tt>/usr/local/bin/newlisp</tt> instead of only <tt>newlisp</tt>. This mode is 
-not available on MS Windows.</p>
+This mode will only work when newLISP was started using its full path-name,
+e.g. <tt>/usr/local/bin/newlisp</tt> instead of only <tt>newlisp</tt>.</p>
 
 <p>In the third syntax. <tt>reset</tt> will change the maximum cell count allowed
 in the system. This number is also reported as the second number in the list 
@@ -24442,10 +24126,9 @@ Sets the file pointer to the new position <em>int-position</em> in the file
 specified by <em>int-file</em>.The new position is expressed as an offset from 
 the beginning of the file, <tt>0</tt> (zero) meaning the beginning of the file.
 If no <em>int-position</em> is specified, <tt>seek</tt> returns the current 
-position in the file. If <em>int-file</em> is <tt>0</tt> (zero), 
-on BSD, <tt>seek</tt> will return the number of characters printed to STDOUT, 
-and on Linux and MS Windows, it will return <tt>-1</tt>. On failure, <tt>seek</tt> 
-returns <tt>nil</tt>. When <em>int-position</em> is set to <tt>-1</tt>, 
+position in the file. If <em>int-file</em> is <tt>0</tt> (zero),
+<tt>seek</tt> will return <tt>-1</tt>. On failure, <tt>seek</tt>
+returns <tt>nil</tt>. When <em>int-position</em> is set to <tt>-1</tt>,
 <tt>seek</tt> sets the file pointer to the end of the file.</p>
 
 <p><tt>seek</tt> can set the file position past the current end of the file. Subsequent
@@ -24579,16 +24262,14 @@ increases the value with a positive <em>int-signal</em>).
 </p>
 
 <p>The second syntax is used to inquire about the value of a semaphore
- by calling <tt>semaphore</tt> with the <em>int-id</em> only.
-This form is not available on MS Windows.</p>
+ by calling <tt>semaphore</tt> with the <em>int-id</em> only.</p>
 
 <p>Supplying <tt>0</tt> (zero) as the last argument will release system 
 resources for the semaphore, which then becomes unavailable.
 Any pending waits on this semaphore in other child processes 
 will be released.</p>
 
-<p>On MS Windows, only parent and child processes can share a semaphore.
-On Linux/Unix, independent processes can share a semaphore.</p>
+<p>On Linux/Unix, independent processes can share a semaphore.</p>
 
 <p>On failure the <tt>semaphore</tt> function returns <tt>nil</tt>.
 <a href="#sys-error">sys-error</a> can be used to retrieve the error
@@ -24605,7 +24286,7 @@ number and text from the underlying operating system.</p>
 ;; assign a semaphore to sid 
 (set 'sid (semaphore))
 
-;; inquire the state of a semaphore (not on Windows OS)
+;; inquire the state of a semaphore
 (semaphore sid)
 
 ;; put sid semaphore in wait state (-1) 
@@ -24723,9 +24404,7 @@ message functions. Instead they should use either <a href="#share">share</a>
 with <a href="#semaphore">semaphore</a> or <a href="#pipe">pipe</a> to 
 communicate.</p>
 
-<p>The <tt>send</tt> function is not available on MS Windows.</p>
-
-<p>In the first syntax <tt>send</tt> is used to send a message 
+<p>In the first syntax <tt>send</tt> is used to send a message
 from a parent to a child process or a child to a parent process.</p>
 
 <p>The second syntax is only used by parent processes to get a list
@@ -25151,9 +24830,9 @@ be performed.</p>
 (set-locale)     
 
 ; set default locale of your platform and country
-; return value shown when executing on German MS-Windows
+; return value shown when executing in a German locale on Linux
 
-(set-locale "")    <span class='arw'>&rarr;</span> ("German_Germany.1252" ",")
+(set-locale "")    <span class='arw'>&rarr;</span> ("de_DE.UTF-8" ",")
 (add 1,234 1,234)  <span class='arw'>&rarr;</span> 2,468
 </pre>
 
@@ -25175,7 +24854,7 @@ and so forth. The options valid on your platform can be found in the C include f
 is specified, <tt>LC_ALL</tt> is used to turn on all options for that locale.</p>
 
 <table>
-<tr align="left"><th>Category</th><th>macOS, BSDs<br/>&amp; MS Windows</th></tr>
+<tr align="left"><th>Category</th><th>macOS<br/>&amp; Linux</th></tr>
 <tr><td>LC_ALL</td><td>0</td></tr>
 <tr><td>LC_COLLATE</td><td>1</td></tr>
 <tr><td>LC_CTYPE</td><td>2</td></tr>
@@ -25471,26 +25150,24 @@ Accesses shared memory
 for communicating between 
 several newLISP processes.
 When called without arguments, 
- <tt>share</tt> requests a page of shared memory 
-from the operating system. 
-This returns a memory address on Linux/Unix 
-and a handle on MS Windows, 
-which can then be 
-assigned to a variable 
+ <tt>share</tt> requests a page of shared memory
+from the operating system.
+This returns a memory address on Linux/Unix,
+which can then be
+assigned to a variable
 for later reference.
-This function is not available on OS/2.
 </p>
 
-<p>To set the contents of shared memory, use the third syntax of <tt>share</tt>. 
-Supply a shared memory address on Linux/Unix or a handle on MS Windows in 
-<em>int-address-or-handle</em>, along with an integer, float, string 
+<p>To set the contents of shared memory, use the third syntax of <tt>share</tt>.
+Supply a shared memory address in
+<em>int-address-or-handle</em>, along with an integer, float, string
 expression or any other expression (since v.10.1.0) supplied
 in <em>exp-value</em>.  Using this syntax, the value supplied in <em>exp-value</em> 
 is also the return value.</p>
 
 <p>To access the contents of shared memory, 
-use the second syntax of <tt>share</tt>, 
-supplying only the shared memory address or handle.
+use the second syntax of <tt>share</tt>,
+supplying only the shared memory address.
 The return value will be any constant or expression (since v.10.1.0)
 written previously into the memory.
 If the memory has not been previously set to a value, 
@@ -25507,8 +25184,7 @@ but not between independent processes.</p>
 <p>Since 10.1.0 size of share objects can exceed the shared memory pagesize
 of the operating system. For objects bigger than the pagesize, newLISP internally
 uses files for sharing. This requires a <tt>/tmp</tt> directory on Unix-like
-operating system. On MS Windows systems the environment variable <tt>TEMP</tt>
-must be set.</p>
+operating system.</p>
 
 <!-- example -->
 
@@ -25601,8 +25277,7 @@ ctrl-C has been pressed
 </pre>
 
 
-<p> On MS Windows, the above example would execute the handler before exiting newLISP.
-On most Linux/Unix systems, newLISP would stay loaded and the prompt would appear 
+<p>On most Linux/Unix systems, newLISP would stay loaded and the prompt would appear
 after hitting the [enter] key.</p>
 
 <p> Instead of specifying a symbol containing the signal handler,
@@ -25644,7 +25319,7 @@ it will still accept the signal and the handler function will be executed:</p>
 
 
 <pre>
-; only on macOS, BSDs and Linux, not on Windows
+; only on macOS and Linux
 (constant 'SIGINT 2)
 (define (ctrlC-handler) (println "ctrl-C has been pressed"))
 
@@ -25991,8 +25666,6 @@ expressions in parallel and speeding up overall processing.</p>
 <p>The optional <tt>true</tt> parameter must be set if <a href="#send">send</a>
 or <a href="#receive">receive</a> is used to communicated with the child
 process spawned.</p>
-
-<p>The function <tt>spawn</tt> is not available on MS Windows.</p>
 
 <p>After successfully starting a child process,  the <tt>spawn</tt> expression
 returns the process id of the forked process. The following examples shows
@@ -26379,8 +26052,8 @@ struct tm {
     int tm_wday;     /* days since Sunday [0-6] */
     int tm_yday;     /* days since January 1 [0-365] */
     int tm_isdst;    /* Daylight Savings Time flag */
-    long tm_gmtoff;  /* offset from CUT in seconds */   /*** not on Windows ***/
-    char *tm_zone;   /* timezone abbreviation */        /*** not on Windows ***/
+    long tm_gmtoff;  /* offset from CUT in seconds */
+    char *tm_zone;   /* timezone abbreviation */
 };
 </pre>
 
@@ -26388,7 +26061,6 @@ struct tm {
 
 <pre>
 ;; for pointers to structs always use void*
-;; as a library use msvcrt.dll on Windows or libc.so on Unix.
 ;; The tm struct type is configured for macOS and Linux.
 ;; On other OS the tm structure may be different
  
@@ -26748,13 +26420,11 @@ either a lambda expression or a symbol which defines a function.</p>
 <p>Without any parameter, <tt>sync</tt> returns a list of pending child process
 PIDs (process identifiers), for which results have not been processed yet.</p>
 
-<p>The function <tt>sync</tt> is not available on MS Windows.</p>
-
 <!-- example -->
 
 <pre>
 ; wait for 10 seconds and process finished child processes
-(sync 10000) 
+(sync 10000)
 
 ; wait for the maximum time (~ 1193 hours)
 (sync -1) 
@@ -26853,7 +26523,7 @@ resource statistics. Ten integers report the following status:</p>
 <tr><td>7</td><td>Pid of running newLISP process</td></tr>
 <tr><td>8</td><td>Version number as an integer constant</td></tr>
 <tr><td>9</td><td>Operating system constant:<br/>
-linux=1, bsd=2, osx=3, solaris=4,  windows=6, os/2=7, cygwin=8, tru64 unix=9, aix=10, android=11
+linux=1, osx=3
 <br/>
 &nbsp;&nbsp;&nbsp;&nbsp;bit 11 will be set for ffilib (extended import/callback API) versions (add 1024)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;bit 10 will be set for IPv6 versions (add 512)<br/>
@@ -27457,8 +27127,8 @@ for the header and 31 for the footer.</p>
 <p>
 The first example replaces the default <tt>#</tt> (number sign) 
 with a <tt>&gt;&gt;</tt> and <tt>&lt;&lt;</tt>. The second example works 
-on most Linux shells.  It may not, however, work in console windows 
-under MS Windows or CYGWIN, depending on the configuration of the terminal.</p>
+on most Linux shells.  It may not, however, work in all console windows,
+depending on the configuration of the terminal.</p>
 
 <br/><br/>
 

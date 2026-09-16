@@ -577,21 +577,9 @@ if(*fmt == 'f' || *fmt == 'g' || *fmt =='G' || *fmt == 'e' || *fmt == 'E')
     }
 
 /* its an integer or character */
-#ifdef TRU64
-if(*fmt == 'd' || *fmt == 'i' || *fmt == 'u' || *fmt == 'x' || *fmt == 'X' || *fmt == 'c' || *fmt == 'o')
-#else
 if(*fmt == 'd' || *fmt == 'u' || *fmt == 'x' || *fmt == 'X' || *fmt == 'c' || *fmt == 'o')
-#endif
     {
-#ifdef TRU64
-#ifndef NEWLISP64
-    *type = CELL_INT64;
-#else
     *type = CELL_LONG;
-#endif
-#else
-    *type = CELL_LONG;
-#endif
     return(++fmt);
     }
 
@@ -613,7 +601,7 @@ if(*fmt == 'l' &&  (*(fmt + 1) == 'd' || *(fmt + 1) == 'i' || *(fmt + 1) == 'u' 
     return(fmt+2);
     }
 
-#ifndef TRUE64 /* UNIX except TRUE64 and WINDOWS MINGW suporting lld, llu, llx, llX formats */
+/* supporting lld, llu, llx, llX formats */
 if(*fmt == 'l' && *(fmt + 1) == 'l' && (*(fmt + 2) == 'd' || *(fmt + 2) == 'u' || *(fmt + 2) =='x' || *(fmt + 2) == 'X'))
     {
 #ifndef NEWLISP64
@@ -623,20 +611,6 @@ if(*fmt == 'l' && *(fmt + 1) == 'l' && (*(fmt + 2) == 'd' || *(fmt + 2) == 'u' |
 #endif
     return(fmt+3);
     }
-#endif
-
-#ifdef WINDOWS /* on MINGW also support MS conventions */
-if(memcmp(fmt, "I64", 3) == 0 &&
-        (*(fmt + 3) == 'd' || *(fmt + 3) == 'u' || *(fmt + 3) =='x' || *(fmt + 3) == 'X'))
-    {
-#ifndef NEWLISP64
-    *type = CELL_INT64;
-#else
-    *type = CELL_LONG;
-#endif
-    return(fmt+4);
-    }
-#endif
 
 /* L and q seem not to be suported on most GCC although in the docs
 if(*fmt == 'L' && (*(fmt + 1) == 'd' || *(fmt + 1) =='x' || *(fmt + 1) == 'X'))
@@ -1159,13 +1133,9 @@ else if(*intString == '0' && (*(intString + 1) == 'b' || *(intString + 1) == 'B'
     base = 2;
     }
      
-#ifdef TRU64 
-result = strtoul(intString, NULL, base); 
-#else 
-result = strtoull(intString,(char **)0, base); 
-#endif 
-    
-return(stuffInteger64(result)); 
+result = strtoull(intString,(char **)0, base);
+
+return(stuffInteger64(result));
 INT_DEFAULT:
 return(copyCell(evaluateExpression(deflt)));
 }
@@ -1222,11 +1192,7 @@ cell = evaluateExpression(params);
 switch(cell->type)
     {
     case CELL_LONG:
-#ifndef EMSCRIPTEN
         snprintf(number, 30, "%"PRIdPTR, cell->contents);
-#else
-        snprintf(number, 30, "%"PRIdPTR, (int)cell->contents);
-#endif
         token = number;
         break;
 #ifndef NEWLISP64

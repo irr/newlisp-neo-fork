@@ -22,77 +22,33 @@
 #include <errno.h>
 #include "protos.h"
 
-#define AF_UNSPEC 0 /* from socket.h or winsock2.h */
+#define AF_UNSPEC 0 /* from socket.h */
 
-
-#if defined(SOLARIS) || defined(TRU64) || defined(AIX) 
-#include <stropts.h>
-#endif
-
-#ifdef SOLARIS
-#define FIONREAD I_NREAD
-#endif
-
-#ifndef WINDOWS
 #include <sys/types.h>
-#ifndef ANDROID
-#ifndef EMSCRIPTEN
 #include <sys/ipc.h>
 #include <sys/sem.h>
-#endif
-#endif
 #include <sys/mman.h>
 #include <sys/ioctl.h>
-#endif
 
 int init_argv(char * ptr, char *argv[]);
 char * getUUID(char * str, char * node);
 
-#ifdef OS2
-#include <conio.h>
-int semctl(int semid, int semnum, int cmd, ...);
-#endif
-
-#if defined(LINUX) || defined(KFREEBSD)
+#ifdef LINUX
 union semun {
   int val;    /* Value for SETVAL */
   struct semid_ds *buf;    /* Buffer for IPC_STAT, IPC_SET */
   unsigned short *array;  /* Array for GETALL, SETALL */
-#ifdef LINUX
   struct seminfo *__buf;  /* Buffer for IPC_INFO (Linux-specific) */
-#endif
 };
-#endif /* LINUX || KFREEBSD */
+#endif /* LINUX */
 
-#ifndef TRU64
 extern char ** environ;
-#endif
 
-#ifdef WINDOWS
-#define fgetc win_fgetc
-#define realpath win_realpath
-#include <conio.h>  
-#include <io.h>
-#include <direct.h>
-#define pclose _pclose
-#define pipe _pipe
-
-/* 
-Set binary as default file mode for Windows.
-See also http://www.mingw.org/MinGWiki/index.php/binary
-*/
-unsigned int _CRT_fmode = _O_BINARY;
-
-int setenv (const char *name, const char *value, int replace);
-#endif /* Win32 */
-
-#ifndef WINDOWS
 #include <sys/socket.h>
 #define SOCKET_ERROR -1
 #define INVALID_SOCKET -1
-#endif
 
-#if defined(LINUX) || defined(KFREEBSD) || defined(CYGWIN)
+#ifdef LINUX
 char * strptime(const char * str, const char * fmt, struct tm * ttm);
 #endif
 
@@ -139,25 +95,7 @@ int isFile(char * fileName, int flag)
 struct stat fileInfo;
 int result;
 
-#ifdef WINDOWS
-char slash;
-size_t len;
-
-len = strlen(fileName);
-slash = *(fileName + len - 1);
-if((slash == '\\' || slash == '/') && (!(len >= 2 && *(fileName + len - 2) == ':')))
-    *(fileName + len - 1) = 0;
-
-#ifdef USE_WIN_UTF16PATH
-result = stat_utf16(fileName, &fileInfo);
-#else
 result = stat(fileName, &fileInfo);
-#endif
-if(slash == '\\' || slash == '/')
-    *(fileName + len - 1) = slash;
-#else /* not WINDOWS */
-result = stat(fileName, &fileInfo);
-#endif
 if(result == 0)
     {
     if(flag)
@@ -179,31 +117,10 @@ int isDir(char * fileName)
 {
 struct stat fileInfo;
 
-#ifdef WINDOWS
-char slash;
-size_t len;
-
-len = strlen(fileName);
-slash = *(fileName + len - 1);
-if((slash == '\\' || slash == '/') && (!(len >= 2 && *(fileName + len - 2) == ':')))
-    *(fileName + len - 1) = 0;
-#endif
-
-#ifdef USE_WIN_UTF16PATH
-if(stat_utf16(fileName, &fileInfo) != 0)
-#else
 if(stat(fileName, &fileInfo) != 0)
-#endif
     {
-#ifdef WINDOWS
-    *(fileName + len - 1) = slash;
-#endif
     return(0);
     }
-
-#ifdef WINDOWS
-*(fileName + len - 1) = slash;
-#endif
 
 if(S_ISDIR(fileInfo.st_mode))
     return(1);
@@ -260,13 +177,8 @@ unsigned char chr;
 
 if(params != nilCell)
     getInteger(params, &handle);
-else 
+else
     handle = printDevice;
-
-#ifdef WINDOWS
-/* make it work as on Unix */
-if(printDevice == 1 || printDevice == 2) handle = 0;
-#endif
 
 if(read((int)handle, &chr, 1) <= 0) return(nilCell);
 
@@ -336,13 +248,11 @@ if(bytesRead == 0)
     } 
 
 /*
-#ifndef WINDOWS
 if((fstream = getIOstream(handle)) != NULL)
     {
     newPosition = lseek(handle, 0, SEEK_CUR);
     fseek(fstream, newPosition, 0);
     }
-#endif
 */
 
 if(stream.size > bytesRead)
@@ -359,18 +269,14 @@ CELL * p_readFile(CELL * params)
 char * fileName;
 char * buffer = NULL;
 ssize_t size;
-#ifndef EMSCRIPTEN
 CELL * result;
-#endif
 
 params = getString(params, &fileName);
-#ifndef EMSCRIPTEN
 if(my_strnicmp(fileName, "http://", 7) == 0)
     {
     result = getPutPostDeleteUrl(fileName, params, HTTP_GET, CONNECT_TIMEOUT);
     return((my_strnicmp((char *)result->contents, (char *)"ERR:", 4) == 0) && netErrorIdx ? nilCell : result);
     }
-#endif
 if((size = readFile(fileName, &buffer)) == -1)
     return(nilCell);
 
@@ -380,17 +286,13 @@ return(makeStringCell(buffer, size));
 /* allocates a buffer and reads a file into it */
 ssize_t readFile(char * fileName, char * * buffer)
 {
-int handle; 
+int handle;
 off_t size;
 struct stat fileInfo;
 
 fileName = getLocalPath(fileName);
 
-#ifdef USE_WIN_UTF16PATH
-if(stat_utf16(fileName, &fileInfo) != 0)
-#else
 if(stat(fileName, &fileInfo) != 0)
-#endif
     return(-1);
 
 size = fileInfo.st_size;
@@ -479,20 +381,16 @@ CELL * appendWriteFile(CELL * params, char * type)
 char * fileName;
 char * buffer;
 size_t size;
-#ifndef EMSCRIPTEN
 CELL * result;
-#endif
 
 params = getString(params, &fileName);
 
-#ifndef EMSCRIPTEN
 if(my_strnicmp(fileName, "http://", 7) == 0)
     {
-    result = getPutPostDeleteUrl(fileName, params, 
+    result = getPutPostDeleteUrl(fileName, params,
                 (*type == 'w') ? HTTP_PUT : HTTP_PUT_APPEND, CONNECT_TIMEOUT);
     return((my_strnicmp((char *)result->contents, (char *)"ERR:", 4) == 0) && netErrorIdx ? nilCell : result);
     }
-#endif
 
 getStringSize(params, &buffer, &size, TRUE);
 
@@ -632,31 +530,11 @@ return(stuffInteger(paramPosition));
 
 char * readStreamLine(STREAM * stream, FILE * inStream)
 {
-#ifdef OLD_READ_STREAM /* pre 10.5.8 */
-int chr;
-#else
 char buff[MAX_STRING];
 size_t l;
-#endif
 
 openStrStream(stream, MAX_STRING, 1);
 
-#ifdef TRU64
-do {
-errno = 0;
-#endif
-#ifdef TRUE64 /* pre 10.5.8 also all other OS */
-while((chr = fgetc(inStream)) != EOF)
-    {
-    if(chr == '\n') break;
-    if(chr == '\r')
-        {
-        chr = fgetc(inStream);
-        if(chr == '\n' || chr == EOF) break;
-        }
-    writeStreamChar(stream, chr);
-    }
-#else
 while(fgets(buff, MAX_STRING, inStream) != NULL)
     {
     l=strlen(buff);
@@ -670,20 +548,12 @@ while(fgets(buff, MAX_STRING, inStream) != NULL)
         }
     writeStreamStr(stream, buff, l);
     }
-#endif /* pre 10.5.8 also all other OS */
-#ifdef TRU64
-} while (errno == EINTR);
-#endif
 
-#ifdef TRU64 /* and pre 10.5.8 on all other OS */
-if(chr == EOF && stream->position == 0) return(NULL);
-#else
-if(feof(inStream)) 
+if(feof(inStream))
     {
     clearerr(inStream);
     if(stream->position == 0) return(NULL);
     }
-#endif
 return(stream->buffer);
 }
 
@@ -698,13 +568,8 @@ FILE * fstream;
 
 if(params != nilCell)
     getInteger(params, &handle);
-else 
+else
     handle = printDevice;
-
-#ifdef WINDOWS
-/* make it work as on Unix */
-if(printDevice == 1 || printDevice == 2) handle = 0;
-#endif
 
 /* check if stream input can be done */
 fstream = (handle == 0) ? IOchannel : getIOstream(handle);
@@ -719,8 +584,7 @@ if(fstream != NULL)
     return(stuffString(line));
     }
 
-/* do raw handle input, only happens when using read-line on 
-   sockets on UNIX and pipes on Windows  */
+/* do raw handle input, only happens when using read-line on sockets */
 openStrStream(&readLineStream, MAX_STRING, 1);
 while(TRUE)
     {
@@ -752,11 +616,6 @@ char * getLocalPath(char * fileName)
 if(my_strnicmp(fileName, "file://", 7) == 0)
     fileName = fileName + 7;
 
-#ifdef WINDOWS
-if(*fileName == '/' && *(fileName + 2) == ':')
-    fileName = fileName + 1;
-#endif
-
 return(fileName);
 }
 
@@ -764,62 +623,29 @@ return(fileName);
 int openFile(char * fileName, char * accessMode, char * option)
 {
 int blocking = 0;
-#ifndef WINDOWS
 int handle;
-#endif
 
 fileName = getLocalPath(fileName);
 
-#ifndef WINDOWS
 if(option != NULL && *option == 'n')
     blocking = O_NONBLOCK;
-#endif
-
 
 if(*accessMode == 'r')
-#ifdef USE_WIN_UTF16PATH
-    return(open_utf16(fileName, O_RDONLY | O_BINARY | blocking, 0));
-#else
     return(open(fileName, O_RDONLY | O_BINARY | blocking, 0));
-#endif
 
 else if(*accessMode == 'w')
-#ifdef WINDOWS
-#ifdef USE_WIN_UTF16PATH
-    return(open_utf16(fileName, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, S_IREAD | S_IWRITE));
-#else
-    return(open (fileName, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, S_IREAD | S_IWRITE));
-#endif /* UTF16 */
-#else
-    return(open(fileName,O_WRONLY | O_CREAT | O_TRUNC | O_BINARY | blocking, 
+    return(open(fileName,O_WRONLY | O_CREAT | O_TRUNC | O_BINARY | blocking,
         S_IRUSR | S_IRGRP | S_IROTH | S_IWUSR | S_IWGRP | S_IWOTH)); /* rw-rw-rw */
-#endif
 
 else if(*accessMode == 'u')
     return(open(fileName, O_RDWR | O_BINARY, 0));
 
 else if(*accessMode == 'a')
    {
-#ifdef WINDOWS
-#ifdef USE_WIN_UTF16PATH
-   return(open_utf16(fileName, O_RDWR | O_APPEND | O_BINARY | O_CREAT, S_IREAD | S_IWRITE));
-#else
-   return(open(fileName, O_RDWR | O_APPEND | O_BINARY | O_CREAT, S_IREAD | S_IWRITE));
-#endif /* UTF 16 */
-#else
    handle = open(fileName, O_RDWR | O_APPEND | O_BINARY | O_CREAT,
           S_IRUSR | S_IRGRP | S_IROTH | S_IWUSR | S_IWGRP | S_IWOTH); /* rw-rw-rw */
-#ifdef EMSCRIPTEN
-       /* oppen append is broken on Emscripten, open for update but filepointer
-          stays at the beginning and old contents is overwritten */
-   if(lseek(handle, 0, SEEK_END) != -1)
-      return(handle);
-#else
-    return(handle);
-#endif
-
-#endif
-       }
+   return(handle);
+   }
 
 return(-1);
 }
@@ -868,36 +694,24 @@ char *newName;
 params = getString(params, &oldName);
 getString(params, &newName);
 
-#ifdef USE_WIN_UTF16PATH
-return(rename_utf16(oldName, newName) == 0 ? trueCell : nilCell);
-#else
 return(rename(oldName, newName) == 0 ? trueCell : nilCell);
-#endif
 }
 
 
 CELL * p_deleteFile(CELL * params)
 {
 char * fileName;
-#ifndef EMSCRIPTEN
 CELL * result;
-#endif
 
 params = getString(params, &fileName);
-#ifndef EMSCRIPTEN
 if(my_strnicmp(fileName, "http://", 7) == 0)
     {
     result = getPutPostDeleteUrl(fileName, params, HTTP_DELETE, CONNECT_TIMEOUT);
     return((my_strnicmp((char *)result->contents, (char *)"ERR:", 4) == 0) && netErrorIdx ? nilCell : result);
     }
-#endif
 
 fileName = getLocalPath(fileName);
-#ifdef USE_WIN_UTF16PATH
-return(unlink_utf16(fileName) == 0 ? trueCell : nilCell);
-#else
 return(unlink(fileName) == 0 ? trueCell : nilCell);
-#endif
 }
 
 
@@ -915,15 +729,7 @@ if(params != nilCell)
     mode = mode > 0xfff ? 0xfff : mode;
     }
 
-#ifdef WINDOWS
-#ifdef USE_WIN_UTF16PATH
-return(mkdir_utf16(dirString) == 0 ? trueCell : nilCell);
-#else
-return(mkdir(dirString) == 0 ? trueCell : nilCell);
-#endif /* UTF16 */
-#else
 return(mkdir(dirString, (mode_t)mode) == 0 ? trueCell : nilCell);
-#endif
 }
 
 
@@ -932,11 +738,7 @@ CELL * p_removeDir(CELL * params)
 char * dirString;
 
 getString(params, &dirString);
-#ifdef USE_WIN_UTF16PATH
-return(rmdir_utf16(dirString) == 0 ? trueCell : nilCell);
-#else
 return(rmdir(dirString) == 0 ? trueCell : nilCell);
-#endif
 }
 
 
@@ -945,11 +747,7 @@ CELL * p_changeDir(CELL * params)
 char * newDir;
 
 getString(params, &newDir);
-#ifdef USE_WIN_UTF16PATH
-return(chdir_utf16(newDir) == 0 ? trueCell : nilCell);
-#else
 return(chdir(newDir) == 0 ? trueCell : nilCell);
-#endif
 }
 
 CELL * p_directory(CELL * params)
@@ -982,16 +780,9 @@ if(dir == NULL) return(nilCell);
 
 while((dEnt = readdir(dir)) != NULL)
     {
-#ifdef USE_WIN_UTF16PATH
-    fileName = utf16_to_utf8(dEnt->d_name);
-#else
     fileName = dEnt->d_name;
-#endif
     if(!pattern || searchBufferRegex(fileName, 0, pattern, strlen(fileName), options, NULL) != -1)
         addList(dirList, stuffString(fileName));
-#ifdef USE_WIN_UTF16PATH
-    free(fileName);
-#endif
     }
 
 closedir(dir);
@@ -1022,10 +813,6 @@ else name = DOT_PATH;
 if(realpath(name, path) == NULL)
     return(nilCell);
 
-#ifdef _BSD /* behaves like Windows */
-if(isFile(path, 0)) return(nilCell);
-#endif
-
 return(stuffString(path));
 }
 
@@ -1038,19 +825,10 @@ int result = 0;
 
 params = getString(params, &pathName);
 
-#ifdef WINDOWS /* has no link-flag */
-#ifdef USE_WIN_UTF16PATH
-result = stat_utf16(pathName, &fileInfo);
-#else
-result = stat(pathName, &fileInfo);
-#endif
-
-#else /* Unix */
 if(getFlag(params->next))
     result = stat(pathName, &fileInfo);
 else
     result = lstat(pathName, &fileInfo);
-#endif
 
 if(result != 0)
     return(nilCell);
@@ -1093,15 +871,7 @@ size_t fileSize(char * pathName)
 struct stat fileInfo;
 int result;
 
-#ifdef WINDOWS /* has no link-flag */
-#ifdef USE_WIN_UTF16PATH
-result = stat_utf16(pathName, &fileInfo);
-#else
 result = stat(pathName, &fileInfo);
-#endif
-#else /* Unix */
-result = stat(pathName, &fileInfo);
-#endif
 
 if(result != 0) return 0;
 
@@ -1111,46 +881,12 @@ return(fileInfo.st_size);
 
 /* ------------------------- processes and pipes ------------------------- */
 
-#ifndef WINDOWS
 CELL * p_system(CELL *params)
 {
 char * command;
 getString(params, &command);
 return(stuffInteger((UINT)system(command)));
 }
-#else
-CELL * p_system(CELL *params)
-{
-UINT creation_flags = 0;
-char * command;
-STARTUPINFO si;
-PROCESS_INFORMATION pi;
-UINT result;
-
-memset(&si, 0, sizeof(STARTUPINFO));
-memset(&pi, 0, sizeof(PROCESS_INFORMATION));
-
-si.cb = sizeof(STARTUPINFO);
-
-params = getString(params, &command);
-if(params != nilCell)
-    getInteger(params, &creation_flags);
-else
-    return(stuffInteger((UINT)system(command)));
-
-result = CreateProcessA(NULL, command, NULL, NULL, 0, (DWORD)creation_flags, NULL, NULL, 
-        (LPSTARTUPINFO)&si, (LPPROCESS_INFORMATION)&pi); 
-
-
-if(!result) return(nilCell);
-
-WaitForSingleObject(pi.hProcess, -1);
-CloseHandle(pi.hProcess);
-CloseHandle(pi.hThread); 
-
-return(stuffInteger(result));
-}
-#endif
 
 
 CELL * p_exec(CELL * params)
@@ -1224,73 +960,18 @@ return(argc);
 }
 
 
-#ifndef EMSCRIPTEN
-#ifdef WINDOWS
-int kill(pid_t pid, int sig);
-int winPipe(UINT * inpipe, UINT * outpipe);
-UINT winPipedProcess(char * command, int inpipe, int outpipe, int option);
-UINT plainProcess(char * command, size_t size);
-
-CELL * p_pipe(CELL * params)
-{
-UINT hin, hout;
-IO_SESSION * session;
-
-if(!winPipe(&hin, &hout))    /* see file win-util.c */
-    return(nilCell);
-
-session = createIOsession(hin, AF_UNSPEC);
-session->stream = fdopen(hin, "r");
-session = createIOsession(hout, AF_UNSPEC);
-session->stream = fdopen(hout, "w");
-
-return(stuffIntegerList(2, hin, hout));
-}
-
-
-CELL * p_process(CELL * params)
-{
-char * command;
-int result;
-size_t size;
-
-UINT inpipe = 0, outpipe = 0, option = 1;
-
-params = getStringSize(params, &command, &size, TRUE);
-if(params != nilCell)
-    {
-    params = getInteger(params, (UINT *)&inpipe);
-    params = getInteger(params, (UINT *)&outpipe);
-    if(params != nilCell)
-        getInteger(params, (UINT *)&option);
-	result = winPipedProcess(command, (int)inpipe, (int)outpipe, (int)option);
-    }
-else result = plainProcess(command, size);
-
-if(!result) return(nilCell);
-
-return(stuffInteger(result));
-}
-
-
-#else /* not WINDOWS */
-
 CELL * p_pipe(CELL * params)
 {
 int handles[2];
-#ifndef SUNOS
 IO_SESSION * session;
-#endif
 
 if(pipe(handles) != 0)
     return(nilCell);
 
-#ifndef SUNOS
 session = createIOsession(handles[0], AF_UNSPEC);
 session->stream = fdopen(handles[0], "r");
 session = createIOsession(handles[1], AF_UNSPEC);
 session->stream = fdopen(handles[0], "w");
-#endif
 
 return(stuffIntegerList(2, (UINT)handles[0], (UINT)handles[1]));
 }
@@ -1677,11 +1358,7 @@ while(mySpawnList != NULL)
     }
 
 /* put initial behaviour back */
-#if defined(SOLARIS) || defined(TRU64) || defined(AIX) 
-setupSignalHandler(SIGCHLD, sigchld_handler);
-#else
 setupSignalHandler(SIGCHLD, signal_handler);
-#endif
 
 return(trueCell);
 }
@@ -1695,7 +1372,7 @@ return(trueCell);
 CELL * p_abort(CELL * params)
 {
 UINT pid;
- 
+
 if(params != nilCell)
     {
     getInteger(params, &pid);
@@ -1703,14 +1380,10 @@ if(params != nilCell)
     }
 else /* abort all */
     {
-    while(mySpawnList != NULL) 
+    while(mySpawnList != NULL)
         processSpawnList(mySpawnList->pid, PROCESS_SPAWN_ABORT, 0);
     /* put initial behaviour back */
-#if defined(SOLARIS) || defined(TRU64) || defined(AIX) 
-   setupSignalHandler(SIGCHLD, sigchld_handler);
-#else
     setupSignalHandler(SIGCHLD, signal_handler);
-#endif
 }
 
 return(trueCell);
@@ -1730,7 +1403,7 @@ fd_set thisFdSet;
 tv.tv_sec = 0;
 tv.tv_usec = 892 + random() / 10000000;
 
-#if defined(SUNOS) || defined(LINUX) || defined(CYGWIN) || defined(AIX) || defined(KFREEBSD)
+#ifdef LINUX
 memcpy(&thisFdSet, &myFdSet, sizeof(fd_set));
 #else
 FD_COPY(&myFdSet, &thisFdSet);
@@ -1969,8 +1642,6 @@ retval = waitpid((int)pid, &result , (int)options);
 return(stuffIntegerList(2, (UINT)retval, (UINT)result));
 }
 
-#endif
-
 CELL * p_destroyProcess(CELL * params)
 {
 UINT pid;
@@ -1990,57 +1661,6 @@ return(trueCell);
 
 /* ------------------------------ semaphores --------------------------------- */
 #ifndef NO_SEMAPHORE
-#ifdef WINDOWS
-
-UINT winCreateSemaphore(void);
-UINT winWaitSemaphore(UINT hSemaphore);
-UINT winSignalSemaphore(UINT hSemaphore, int count);
-UINT winDeleteSemaphore(UINT hSemaphore);
-int getSemaphoreCount(UINT hSemaphore);
-
-CELL * p_semaphore(CELL * params)
-{
-UINT sem_id;
-INT value;
-
-if(params != nilCell)
-    {
-    params = getInteger(params, &sem_id);
-    if(params != nilCell)
-        {
-        getInteger(params,(UINT *)&value);
-        if(value == 0)
-            {
-            if(!winDeleteSemaphore(sem_id)) 
-                return(nilCell);
-            return(trueCell);
-            }
-
-        /* wait or signal */
-        if(value < 0)
-            {
-            if(winWaitSemaphore(sem_id)) return(trueCell);
-            return(nilCell);
-            }
-        if(value > 0)
-            {
-            if(winSignalSemaphore(sem_id, value)) return(trueCell);
-            return(nilCell);    
-            }
-        }
-
-    else
-        {
-        /* return semaphore value, not on Win32 ? */
-        return(nilCell);
-        }
-    }
-
-/* create semaphore */
-if((sem_id = winCreateSemaphore()) == 0) return(nilCell);
-return(stuffInteger(sem_id));
-}
-#else /* Mac OS X, Linux/UNIX */
 
 CELL * p_semaphore(CELL * params)
 {
@@ -2074,17 +1694,10 @@ return(stuffInteger((UINT)result));
 int semaphore(UINT sem_id, int value, int type)
 {
 struct sembuf sem_b;
-#ifdef SPARC
-#ifndef NEWLISP64
-int semun_val = 0;
-#endif
-#endif
 
-#if defined(MAC_OSX) || defined(LINUX) || defined(KFREEBSD)
 union semun semu;
 
 semu.val = 0;
-#endif
 
 if(type != SEM_CREATE)
     {
@@ -2093,20 +1706,7 @@ if(type != SEM_CREATE)
         if(value == 0)
             {
             /* remove semaphore */
-#ifdef SPARC
-    #ifndef NEWLISP64
-            if(semctl(sem_id, 0, IPC_RMID, &semun_val) == -1) /* SPARC 32 */
-    #else 
-            if(semctl(sem_id, 0, IPC_RMID, 0) == -1) /* SPARC 64 */
-    #endif
-
-#else /* not SPARC */
-    #if defined(MAC_OSX) || defined(LINUX) || defined(KFREEBSD)
-            if(semctl(sem_id, 0, IPC_RMID, semu) == -1) /* MAC_OSX, GNU/Linux, GNU/kFreeBSD */
-    #else
-            if(semctl(sem_id, 0, IPC_RMID, 0) == -1) /* BSD, TRU64 */
-    #endif /* not MAC_OSX */
-#endif /* not SPARC */
+            if(semctl(sem_id, 0, IPC_RMID, semu) == -1) /* MAC_OSX, GNU/Linux */
                 return(-1);
             return(0);
             }
@@ -2114,7 +1714,7 @@ if(type != SEM_CREATE)
         /* wait or signal */
         sem_b.sem_num = 0;
         sem_b.sem_op = value;
-        sem_b.sem_flg = 0; 
+        sem_b.sem_flg = 0;
         if(semop(sem_id, &sem_b, 1) == -1)
             return(-1);
         return(0);
@@ -2122,44 +1722,22 @@ if(type != SEM_CREATE)
 
     else
         /* return semaphore value */
-#if defined(MAC_OSX) || defined(LINUX) || defined(KFREEBSD)
         return(semctl(sem_id, 0, GETVAL, semu));
-#else
-        return(semctl(sem_id, 0, GETVAL, 0));
-#endif
     }
 
 /* create semaphore */
 sem_id = semget(IPC_PRIVATE, 1, 0666 );
 
-#ifdef SPARC
-  #ifndef NEWLISP64
-if(semctl(sem_id, 0, SETVAL, &semun_val) == -1) /* SPARC 32 */
-  #else
-if(semctl(sem_id, 0, SETVAL, 0) == -1) /* SPARC 64 */
-  #endif
-#else /* not SPARC */
- #if defined(MAC_OSX) || defined(LINUX) || defined(KFREEBSD)
-if(semctl(sem_id, 0, SETVAL, semu) == -1) /* MAC_OSX, GNU/Linux, GNU/kFreeBSD */
- #else
-if(semctl(sem_id, 0, SETVAL, 0) == -1) /* BSD, TRU64 */
- #endif /* not MAC_OSX */
-#endif /* not SPARC */
+if(semctl(sem_id, 0, SETVAL, semu) == -1) /* MAC_OSX, GNU/Linux */
     return(-1);
 
 return(sem_id);
 }
 
-#endif /* MAC OSX, Unix, Linux */
 #endif /* NO_SEMAPHORE */
 
 
 #ifndef NO_SHARE
-
-#ifdef WINDOWS
-UINT winSharedMemory(int size);
-UINT * winMapView(UINT handle, int size);
-#endif
 
 /* since 10.1.0 also can share object > pagesize
    objects are stored in the tmp directory of OS
@@ -2170,15 +1748,11 @@ CELL * p_share(CELL * params)
 {
 void * address;
 CELL * cell;
-#ifdef WINDOWS
-UINT handle;
-#endif
 
 /* read write  or release (UNIX) shared memory */
-if(params != nilCell) 
+if(params != nilCell)
     {
     cell = evaluateExpression(params);
-#ifndef WINDOWS
     if(isNil(cell)) /* release shared address */
         {
         getInteger(params->next, (UINT *)&address);
@@ -2188,37 +1762,18 @@ if(params != nilCell)
         else
             return(trueCell);
         }
-#endif
     getIntegerExt(cell, (UINT *)&address, FALSE);
     params = params->next;
-#ifdef WINDOWS
-    if((address = winMapView((UINT)address, pagesize)) == NULL)
-        return(nilCell);
-#endif
     return(readWriteShared(address, params, 0));
     }
 
 /* get shared memory UNIX */
-#ifndef WINDOWS
 if((address = (UINT*)mmap(
     0, pagesize, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANON, -1, 0)) == (void*)-1)
         return(nilCell);
 
 memset((char *)address, 0, pagesize);
 return(stuffInteger((UINT)address));
-
-/* get shared memory WINDOWS */
-#else 
-
-if((handle = winSharedMemory(pagesize)) == 0)
-    return(nilCell);
-
-if((address = winMapView(handle, pagesize)) == NULL)
-    return(nilCell);
-
-memset((char *)address, 0, pagesize);
-return(stuffInteger(handle));
-#endif
 }
 #endif /* NO_SHARE  */
 
@@ -2260,15 +1815,9 @@ if(params != nilCell)
         {
         case CELL_NIL:
             *address = cell->type;
-#ifdef WINDOWS
-            UnmapViewOfFile(address);
-#endif
             return(nilCell);
         case CELL_TRUE:
             *address = cell->type;
-#ifdef WINDOWS
-            UnmapViewOfFile(address);
-#endif
             return(trueCell);
         case CELL_LONG:
             *(address + 1) = sizeof(INT);
@@ -2304,9 +1853,6 @@ if(params != nilCell)
         }
 
     *address = cell->type;
-#ifdef WINDOWS
-    UnmapViewOfFile(address);
-#endif
     return(copyCell(cell));
     }
 
@@ -2314,14 +1860,8 @@ if(params != nilCell)
 switch(*address & RAW_TYPE_MASK)
     {
     case CELL_NIL:
-#ifdef WINDOWS 
-        UnmapViewOfFile(address);
-#endif
         return(nilCell);
     case CELL_TRUE:
-#ifdef WINDOWS 
-        UnmapViewOfFile(address);
-#endif
         return(trueCell);   
     case CELL_LONG:
         cell = stuffInteger(*(address + 2));
@@ -2352,9 +1892,6 @@ switch(*address & RAW_TYPE_MASK)
         return(nilCell);
     }
 
-#ifdef WINDOWS
-        UnmapViewOfFile(address);
-#endif
 return(cell);
 }
 
@@ -2425,20 +1962,10 @@ return(cell);
 void checkDeleteShareFile(UINT * address)
 {
 if(     (*address == (CELL_STRING | SHARED_MEM_EVAL_MASK)) &&
-#ifndef WINDOWS
-#ifdef ANDROID
-        (strncmp((char *)(address + 2), "/data/tmp/nls-", 9) == 0) &&
-#else
         (strncmp((char *)(address + 2), "/tmp/nls-", 9) == 0) &&
-#endif
         (strlen((char *)(address + 2)) == 45) )
-#else
-        (strncmp((char *)(address + 2), "/temp/nls-", 10) == 0) &&
-        (strlen((char *)(address + 2)) == 46) )
-#endif
-    unlink((char *)(address + 2)); 
+    unlink((char *)(address + 2));
 }
-#endif /* ifndef EMSCRIPTEN */
 
 extern int ADDR_FAMILY;
 CELL * p_systemInfo(CELL * params)
@@ -2616,7 +2143,6 @@ usec = (UINT64)1000000 * out.tv_sec + out.tv_usec;
 return(usec);
 }
 
-#ifndef WINDOWS
 CELL * p_dateParse(CELL * params)
 {
 struct tm ttm;
@@ -2643,7 +2169,6 @@ dateValue = calcDateValue(
 
 return(stuffInteger(dateValue));
 }
-#endif
 
 CELL * p_time(CELL * params)
 {
@@ -2681,20 +2206,9 @@ CELL * p_now(CELL * params)
 {
 struct timeval tv;
 struct tm *ttm;
-#ifndef WINDOWS
 struct tm *ltm;
-#ifndef SUNOS
-#ifndef OS2
-#ifndef AIX
 INT gmtoff;
 UINT isdst;
-#endif
-#endif
-#endif
-#else /* WINDOWS */
-TIME_ZONE_INFORMATION timeZone;
-int retval;
-#endif
 ssize_t offset = 0;
 time_t sec;
 CELL * cell;
@@ -2708,26 +2222,9 @@ if(params != nilCell)
         tv.tv_sec += offset;
     }
 
-#ifndef WINDOWS
 ltm = localtime((time_t *)&tv.tv_sec);
-#ifndef SUNOS
-#ifndef OS2
-#ifndef AIX
 isdst = ltm->tm_isdst;
-
-#ifdef CYGWIN
-gmtoff = _timezone/60;
-#else
 gmtoff = ltm->tm_gmtoff/60;
-#endif
-
-#endif
-#endif
-#endif
-#else /* WINDOWS */
-memset((void *)&timeZone, 0, sizeof(timeZone));
-retval = GetTimeZoneInformation(&timeZone);
-#endif
 
 sec = tv.tv_sec;
 ttm = gmtime(&sec);
@@ -2743,27 +2240,7 @@ cell = stuffIntegerList(
     (UINT)tv.tv_usec,
     (UINT)ttm->tm_yday + 1,
     ((UINT)ttm->tm_wday == 0 ? 7 : (UINT)ttm->tm_wday),
-
-#if defined(MAC_OSX) || defined(LINUX) || defined(_BSD) || defined(KFREEBSD) || defined(CYGWIN)
     gmtoff, isdst
-#endif
-
-#if defined(SUNOS)
-    timezone/60, daylight
-#endif
-
-#if defined(OS2) || defined(TRU64) || defined(AIX)
-#ifdef NEWLISP64
-    (UINT)0L, (UINT)0L
-#else
-    (UINT)0, (UINT)0
-#endif
-#endif
-
-#if defined(WINDOWS)
-    (retval == 2) ?  ((UINT)-timeZone.Bias - (UINT)timeZone.DaylightBias) : (UINT)-timeZone.Bias,
-    (UINT)retval
-#endif
     );
 
 if(params != nilCell)   
@@ -2862,7 +2339,7 @@ return(stuffInteger((UINT)dateValue));
 
 
 
-/* changed for 10.6.1 where time_t can be 64-bit on 32-bit Windows */
+/* changed for 10.6.1 where time_t can be 64-bit */
 time_t calcDateValue(int year, int month, int day, int hour, int min, int sec)
 {
 time_t dateValue;
@@ -2903,13 +2380,7 @@ tm.tv_nsec = (ms - tm.tv_sec * 1000) * 1000000;
 nanosleep(&tm, 0);
 
 #else
-
-#ifdef WINDOWS
-Sleep(ms);
-#else
 sleep((ms + 500)/1000);
-#endif
-
 #endif
 }
 
@@ -2966,29 +2437,14 @@ if(params == nilCell)
 
 /* two parameters sets environment for one variable */
 getString(params, &varValue);
-#ifndef MY_SETENV
 if(*varValue == 0)
     unsetenv(varName);
 else
-#endif
     if(setenv(varName, varValue, 1) != 0)
         return(nilCell);
 
 return(trueCell);
 }
-
-
-#ifdef MY_SETENV
-int my_setenv(const char * varName, const char * varValue, int flag)
-{
-char * envstr;
-envstr = alloca(strlen(varName) + strlen(varValue) + 2);
-strcpy(envstr, varName);
-strcat(envstr, "=");
-strcat(envstr, varValue);
-return(putenv(envstr));
-}
-#endif
 
 
 CELL * environment(void)
@@ -3041,19 +2497,6 @@ return(envList);
 
 CELL * p_readKey(CELL * params)
 {
-
-#if defined(WINDOWS) || defined(OS2)
-if(!isNil(evaluateExpression(params)) )
-	{
-	if(kbhit()) 
-		return(stuffInteger(getch()));
-	else 
-		return(stuffInteger(0));
-	}
-else
-	return(stuffInteger(getch()));
-#else
-
 struct termios term, oterm;
 char ch = 0;
 int noblock = 0;
@@ -3079,7 +2522,7 @@ if(noblock)
     fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
     }
 
-while(read(STDIN_FILENO, &ch, 1) == 0); 
+while(read(STDIN_FILENO, &ch, 1) == 0);
 
 if(noblock)
     fcntl(STDIN_FILENO, F_SETFL, oldf);
@@ -3090,12 +2533,10 @@ if(ch != EOF)
     return(stuffInteger((UINT)ch));
 
 return(stuffInteger(0));
-#endif /* not Windows or OS2 */
-} 
+}
 
 /* --------------------- peek a file descriptor ------------------------------*/
 
-#ifndef WINDOWS
 CELL * p_peek(CELL * params)
 {
 UINT handle;
@@ -3107,29 +2548,7 @@ if(ioctl((int)handle, FIONREAD, &result) < 0)
     return(nilCell);
 
 return(stuffInteger((UINT)result));
-} 
-#endif
-
-/* --------------------- library functions not found on some OSs -------------*/
-
-#ifdef MY_VASPRINTF
-int my_vasprintf(char * * buffer, const char * format, va_list argptr)
-{
-int size;
-
-/* get size */
-size = vsnprintf(NULL, 0, format, argptr);
-if (size < 0) return -1;
-
-*buffer = calloc(size + 1, 1);
-if (!*buffer) return(-1);
-
-vsnprintf(*buffer, size + 1, format, argptr);
-(*buffer)[size] = '\0';
-
-return(size);
 }
-#endif
 
 
 /* ---------------------- Universal Unique ID version 1 and 3 ----------- */
@@ -3164,14 +2583,10 @@ int uuid_version;
 gettimeofday(&tp, (struct timezone *)0);
 
 /* add UUID UTC offset Oct 15, 1582 */
-timestamp = tp.tv_sec * (INT64)10000000 + tp.tv_usec * 10 + OCT151582; 
+timestamp = tp.tv_sec * (INT64)10000000 + tp.tv_usec * 10 + OCT151582;
 
-#ifdef WINDOWS
-if(timestamp <= last_time) timestamp = last_time + 1;
-#else
 if(timestamp < last_time) clock_seq++;
 if(timestamp == last_time) timestamp++;
-#endif
 
 if(last_time == 0)
     srandom((timestamp & 0xFFFFFFFF) + getpid());
@@ -3202,13 +2617,10 @@ else
     memcpy(uuid.node, node, 6);
     }
 
-if(uuid_version == 4) 
+if(uuid_version == 4)
     {
     clock_seq = random();
     uuid.time_low = random();
-#ifdef WINDOWS
-    uuid.time_low |= (random() << 16);
-#endif
     uuid.time_mid = random();
     uuid.time_hi_and_version = random();
     }

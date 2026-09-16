@@ -21,21 +21,6 @@
 #include "newlisp.h"
 #include <string.h>
 
-#ifdef WINDOWS
-
-#include <winsock2.h>
-#pragma push_macro("UINT") 
-#undef UINT /* avoid clash with newLISP UINT */
-#include <ws2tcpip.h>
-#pragma pop_macro("UINT")
-#include <ws2spi.h>
-
-#define fdopen win_fdopen
-#define SHUT_RDWR 2
-#define gethostbyname2(A, B) gethostbyname(A)
-
-#else /* UNIX */
-
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/socket.h>
@@ -49,53 +34,13 @@
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
 #include <netinet/ip_icmp.h>
-#ifndef OS2
-#include <netinet/icmp6.h> 
-#endif
+#include <netinet/icmp6.h>
 #include <netdb.h>
 #include <arpa/inet.h>
 
 #ifndef IPPROTO_DIVERT
 #define IPPROTO_DIVERT 254
 #endif
-
-/* Android needs it */
-#ifndef ICMP6_FILTER
-#define ICMP6_FILTER 1
-#endif
-
-#endif /* end UNIX */
-
-#ifdef CYGWIN
-#include <netinet/icmp6.h> /* not on Cygwin, get from other OS */
-
-#define ICMP_ECHO 8
-
-struct icmp
-{
-   unsigned char icmp_type;
-   unsigned char icmp_code;
-   unsigned short icmp_cksum;
-   unsigned short icmp_id;
-   unsigned short icmp_seq;
-};
-#endif /* end CYGWIN */
-
-#if defined(SOLARIS) || defined(TRU64) || defined(AIX)
-#include <stropts.h>
-#include <sys/conf.h>
-#include <netinet/in_systm.h>
-#define gethostbyname2(A, B) gethostbyname(A)
-#endif
-
-#ifdef SOLARIS
-#define FIONREAD I_NREAD
-#endif
-
-#ifdef OS2 
-#define socklen_t int 
-#define SHUT_RDWR 2 
-#endif 
 
 #ifndef INADDR_NONE
 #define INADDR_NONE (unsigned) -1
@@ -115,12 +60,8 @@ struct icmp
 #define MAX_PENDING_CONNECTS 128
 #define NO_FLAGS_SET 0
 
-#ifdef WINDOWS
-#define close closesocket /* for file operations on Windows use _close */
-#else
 #define SOCKET_ERROR -1
 #define INVALID_SOCKET -1
-#endif
 
 #define isnum(A) ((A)>= '0' && (A) <= '9')
 
@@ -129,7 +70,6 @@ IO_SESSION * ioSessions = NULL;
 int isSessionSocket(int sock);
 int getSocketFamily(int sock);
 
-#ifndef EMSCRIPTEN
 #define READY_READ 0
 #define READY_WRITE 1
 
@@ -182,7 +122,6 @@ else
     }
 
 }
-#endif /* ifndef EMSCRIPTEN */
 
 /********************** IO session functions *******************/
 
@@ -293,28 +232,19 @@ return(NULL);
 }
 
 /* ========================= IO session functions end ===================== */
-#ifndef EMSCRIPTEN
-#ifdef WINDOWS
-int ipstrFromSockAddr(struct sockaddr * addr, char * host, int len)
-{
-WSAAddressToString(addr, defaultInLen, NULL, host, (LPDWORD)&len);
-return(TRUE);
-}
-#else /* UNIX */
+
 int ipstrFromSockAddr(struct sockaddr * addr, char * host, int len)
 {
 struct sockaddr_in6 * saddr6 = (struct sockaddr_in6 *)addr;
 struct sockaddr_in * saddr =(struct sockaddr_in *)addr;
 
 if(addr->sa_family == AF_INET6)
-    inet_ntop(AF_INET6, &saddr6->sin6_addr, host, len); 
+    inet_ntop(AF_INET6, &saddr6->sin6_addr, host, len);
 else
     strncpy(host, inet_ntoa(saddr->sin_addr), len);
 return(TRUE);
 }
-#endif
 
-/* ANDROID and WINDOWS need this */
 #ifndef in_port_t
 #define in_port_t short int
 #endif
@@ -419,17 +349,14 @@ int sock;
 int type; 
 int protocol = 0;
 
-params = getString(params, &remoteHostName); 
-#ifndef WINDOWS
+params = getString(params, &remoteHostName);
 if(params == nilCell)
     {
     if((sock = netConnectLocal(remoteHostName)) == SOCKET_ERROR)
         return(netError(netErrorIdx));
-    else    
+    else
         return(stuffInteger((UINT)sock));
     }
-
-#endif
 
 params = getInteger(params, &portNo);
 type = SOCK_STREAM;
@@ -468,7 +395,6 @@ return(stuffInteger((UINT)sock));
 }
 
 
-#ifndef WINDOWS
 /* create local domain UNIX socket */
 int netConnectLocal(char * path)
 {
@@ -494,36 +420,25 @@ if (connect(sock, (struct sockaddr *)&remote_sun, SUN_LEN(&remote_sun)) == -1)
 createIOsession(sock, AF_UNIX);
 
 netErrorIdx = 0;
-return(sock); 
+return(sock);
 }
-#endif
 
 
 int blockSocket(int sock)
 {
-#ifdef WINDOWS
-u_long arg = 0;
-return(ioctlsocket(sock, FIONBIO, &arg));
-#else /* UNIX */
 int arg;
 arg = fcntl(sock, F_GETFL, NULL);
 arg &= (~O_NONBLOCK);
 return(fcntl(sock, F_SETFL, arg));
-#endif
 }
 
 #ifdef UNBLOCK
 int unblockSocket(int sock)
 {
-#ifdef WINDOWS
-u_long arg = 1;
-return(ioctlsocket(sock, FIONBIO, &arg));
-#else /* Unix */
 int arg;
 arg = fcntl(sock, F_GETFL, NULL);
 arg &= (~O_NONBLOCK);
 return(fcntl(sock, F_SETFL, arg));
-#endif
 }
 #endif
 
@@ -535,12 +450,8 @@ int netConnect(char * remoteHostName, int portNo, int type, int prot, int topt)
 struct addrinfo hints, *res, *res0;
 char portStr[10];
 int sock, opt;
-#if defined(WINDOWS) || defined(EMSCRIPTEN)
-u_long arg = 1;
-#else
 int arg, value;
 socklen_t socklen = sizeof(sock);
-#endif
 int result = -1;
 int sinlen;
 
@@ -553,20 +464,12 @@ if((sock = socket(ADDR_FAMILY, type, 0)) == INVALID_SOCKET)
 
 if(prot == 0) /* topt is timeout in millisecs */
     {
-#ifdef WINDOWS
-    if(ioctlsocket(sock, FIONBIO, &arg) != 0)
-        {
-        netErrorIdx = ERR_INET_CANNOT_CHANGE_SOCK_BLOCK;
-        return(SOCKET_ERROR);
-        }
-#else /* UNIX */
     arg = fcntl(sock, F_GETFL, NULL);
     if(fcntl(sock, F_SETFL, arg | O_NONBLOCK) < 0)
         {
         netErrorIdx = ERR_INET_CANNOT_CHANGE_SOCK_BLOCK;
         return(SOCKET_ERROR);
         }
-#endif
     }
 else if(prot == 'M' || prot == 'B') 
     {
@@ -605,25 +508,19 @@ for(res = res0; res; res = res->ai_next)
     result = connect(sock, res->ai_addr, res->ai_addrlen);
     if(result < 0)
         {
-#ifdef WINDOWS
-        if(WSAGetLastError() == WSAEWOULDBLOCK)
-#else
-        if(errno == EINPROGRESS) 
-#endif
+        if(errno == EINPROGRESS)
             {
             if((result = wait_ready(sock, topt * 1000, READY_WRITE)) <= 0)
                 {
                 netErrorIdx = result < 0 ? ERR_INET_CONNECT_FAILED : ERR_INET_TIMEOUT;
                 goto CONNECT_FAILED;
                 }
-#ifndef WINDOWS 
-            getsockopt(sock, SOL_SOCKET, SO_ERROR, (void*)&value, &socklen); 
-            if (value) 
-                { 
+            getsockopt(sock, SOL_SOCKET, SO_ERROR, (void*)&value, &socklen);
+            if (value)
+                {
                 netErrorIdx =  ERR_INET_CONNECT_FAILED;
                 goto CONNECT_FAILED;
-                } 
-#endif
+                }
             result = 0;
             break;
             }
@@ -756,22 +653,18 @@ int netAccept(int listenSock)
 int sock, family;
 struct sockaddr * dest_sin;
 socklen_t dest_slen;
-#ifndef WINDOWS
 struct sockaddr_un dest_sun;
-#endif
 
 family = getSocketFamily(listenSock);
 
-#ifndef WINDOWS
 if(family == AF_UNIX)
     {
     dest_slen = sizeof(struct sockaddr_un);
     sock = accept(listenSock, (struct sockaddr *) &dest_sun,  &dest_slen);
     }
 else
-#endif
     {
-    dest_slen = (ADDR_FAMILY == AF_INET6) ? 
+    dest_slen = (ADDR_FAMILY == AF_INET6) ?
         sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in);
 
     dest_sin = alloca(dest_slen);
@@ -999,11 +892,7 @@ struct sockaddr * remote;
 char IPaddress[STRADDR_LEN];
 CELL * cell;
 CELL * result;
-#ifdef TRU64
-unsigned long remote_sin_len;
-#else
 socklen_t remote_sin_len;
-#endif
 
 buffer = (char *)allocMemory(readSize + 1);
 
@@ -1213,7 +1102,6 @@ type = SOCK_STREAM;
 cell = evaluateExpression(params);
 params = params->next;
 
-#ifndef WINDOWS
 if(cell->type == CELL_STRING)
     {
     if((sock = netListenLocal((char *)cell->contents)) == SOCKET_ERROR)
@@ -1221,9 +1109,8 @@ if(cell->type == CELL_STRING)
     else
         return(stuffInteger((UINT)sock));
     }
-#endif
 
-getIntegerExt(cell, &portNo, FALSE); 
+getIntegerExt(cell, &portNo, FALSE);
 
 if(params != nilCell)
     {
@@ -1235,13 +1122,11 @@ if(params != nilCell)
         opt = toupper(*option);
         if(opt == 'U')
             type = SOCK_DGRAM;
-#ifndef WINDOWS
         else if(opt == 'D')
             {
             type = SOCK_RAW;
             sockopt = IPPROTO_DIVERT;
             }
-#endif
         else if(opt == 'M')
             {
             type = SOCK_DGRAM;
@@ -1251,7 +1136,7 @@ if(params != nilCell)
         else
             errorProc(ERR_INVALID_OPTION);
         }
-            
+
     }
     
 
@@ -1262,7 +1147,6 @@ if((sock = netListenOrDatagram((int)portNo, type, ifAddr, mcAddr, sockopt))
 return(stuffInteger(sock));
 } 
 
-#ifndef WINDOWS
 int netListenLocal(char * name)
 {
 int sock;
@@ -1274,11 +1158,7 @@ strncpy(local_sun.sun_path, name, sizeof(local_sun.sun_path) - 1);
 local_sun.sun_path[sizeof (local_sun.sun_path) - 1] = '\0';
 unlink(local_sun.sun_path);
 
-#ifdef OS2
-if(bind(sock, (struct sockaddr *)&local_sun, sizeof(struct sockaddr_un)) == -1)
-#else
 if(bind(sock, (struct sockaddr *)&local_sun, SUN_LEN(&local_sun)) != 0)
-#endif
     {
     close(sock);
     netErrorIdx = ERR_INET_CANNOT_BIND;
@@ -1297,7 +1177,6 @@ createIOsession(sock, AF_UNIX);
 netErrorIdx = 0;
 return(sock);
 }
-#endif
 
 
 int netListenOrDatagram(int portNo, int stype, char * ifAddr, char * mcAddr, int option)
@@ -1366,11 +1245,7 @@ return(sock);
 CELL * p_netPeek(CELL * params)
 {
 UINT sock;
-#ifdef WINDOWS
-u_long result;
-#else
 int result;
-#endif
 
 getInteger(params, &sock);
 
@@ -1483,25 +1358,14 @@ void writeLog(char * text, int newLine)
 {
 int handle;
 
-
-#ifdef WINDOWS
-handle = open(logFile, O_RDWR | O_APPEND | O_BINARY | O_CREAT, S_IREAD | S_IWRITE);
-#else
 handle = open(logFile, O_RDWR | O_APPEND | O_BINARY | O_CREAT,
           S_IRUSR | S_IRGRP | S_IROTH | S_IWUSR | S_IWGRP | S_IWOTH); /* rw-rw-rw */
-#endif
 
 if(write(handle, text, strlen(text)) < 0) return;
-if(newLine) 
+if(newLine)
     if(write(handle, &LINE_FEED, LINE_FEED_LEN) < 0) return;
-#ifdef WINDOWS
-_close(handle);
-#else
 close(handle);
-#endif
 }
-
-FILE * win_fdopen(int handle, const char * mode);
 
 FILE * serverFD(int port, char * domain, int reconnect)
 {
@@ -1514,14 +1378,10 @@ text[79] = 0;
 
 if(!reconnect)
     {
-#ifndef WINDOWS
     if(port != 0)
         sock = netListenOrDatagram(port, SOCK_STREAM, NULL, NULL, 0);
     else
         sock = netListenLocal(domain);
-#else
-    sock = netListenOrDatagram(port, SOCK_STREAM, NULL, NULL, 0);
-#endif
 
     if(sock == SOCKET_ERROR) return(NULL);
     else {
@@ -1650,16 +1510,12 @@ else
     memset(session, 0, sizeof(NETEVAL));
     }
 
-/* timeout for making connection is always 15 secs, 
+/* timeout for making connection is always 15 secs,
    but variable timeOut is used during connection */
-#ifndef WINDOWS
 if(port != 0)
     sock = netConnect(host, (int)port, SOCK_STREAM, 0, 15000);
 else
     sock = netConnectLocal(host);
-#else
-sock = netConnect(host, (int)port, SOCK_STREAM, 0, 15000);
-#endif
 
 if(sock == SOCKET_ERROR)
         {
@@ -2002,15 +1858,7 @@ struct sockaddr * whereto;
 struct sockaddr * from;
 int s;
 int sockopt = 1;
-#ifdef TRU64
-unsigned long sockaddr_len;
-#else
-#ifdef OS2
-int sockaddr_len;
-#else
 socklen_t sockaddr_len;
-#endif
-#endif
 int broadcast = 0;
 int size, ipNo, startIp = 0, endIp = 0;
 int timeout = 0, tdiff;
@@ -2318,17 +2166,15 @@ struct icmp * icmph;
 int dport;
 /* ip_len  and ip_off must be check-summed in network order (big-Endian),
    but one or both must be given to the sendto() in host byte-order on
-   some OS. As of 10.2.6 the following configFLags work for Mac OS X
-   on PPC and Intel, Linux on Intel and OpenBSD on Intel.
+   some OS. As of 10.2.6 the following configFlags work for Mac OS X
+   and Linux.
 
    Curently net-packet is IPv4 only.
 */
-#if defined(MAC_OSX)
+#ifdef MAC_OSX
 UINT configFlags = 3; /* ntohs() for both ip_len and ip_off */
-#elif defined(LINUX)
+#else /* LINUX */
 UINT configFlags = 1; /* ntohs() for ip_len only */
-#else /* works for OpenBSD */
-UINT configFlags = 0; /* none */
 #endif
 
 params = getStringSize(params, &packet, &size, TRUE);
@@ -2347,15 +2193,9 @@ switch(iph->ip_p)
   {
   case IPPROTO_TCP:
     tcph = (struct tcphdr *)(packet + sizeof(struct ip));
-#ifdef ANDROID
-    dport = tcph->dest;
-    if(tcph->check == 0) 
-        tcph->check = pseudo_chks(iph, packet, (char *) tcph, tcph->doff * 4);
-#else
     dport = tcph->th_dport;
-    if(tcph->th_sum == 0) 
+    if(tcph->th_sum == 0)
         tcph->th_sum = pseudo_chks(iph, packet, (char *) tcph, tcph->th_off * 4);
-#endif
     break;
   case IPPROTO_UDP:
     udph = (struct udphdr *)(packet + sizeof(struct ip));
@@ -2426,110 +2266,4 @@ return(checksum);
 }
 #endif /* NO_NET_PACKET */
 
-/* ------------------ socket->filestream stuff for windows ------------------------*/
-
-#ifdef WINDOWS
-extern int IOchannelIsSocketStream;
-
-/*
-These functions use the FILE structure to store the raw file handle in '->_file' and
-set ->_flag to 0xFFFF, to identify this as a faked FILE structure.
-Sinc 10.0.1 the IOchannelIsSocketStream flag is used to identify IOchannel as
-a fake file struct and extract the socket. Following win_fxxx routines
-are used to define fopen(), fclose(), fprintf(), fgetc() and fgets() in some *.c
-*/
-
-FILE * win_fdopen(int handle, const char * mode)
-{
-WIN_SOCKET_WRAPPER * fPtr;
-
-if((fPtr = (WIN_SOCKET_WRAPPER *)malloc(sizeof(WIN_SOCKET_WRAPPER))) == NULL)
-    return(NULL);
-
-fPtr->handle = handle;
-
-return((FILE *)fPtr);
-}
-
-int win_fclose(FILE * fPtr)
-{
-if(IOchannelIsSocketStream)
-   {
-   int res = close(getSocket(fPtr));
-   free(fPtr);
-   return(res);
-   }
-
-return(fclose(fPtr));
-}
-
-
-int win_fprintf(FILE * fPtr, char * notused, char * buffer)
-{
-int pSize;
-
-if(!IOchannelIsSocketStream)
-    return(fprintf(fPtr, buffer));
-
-pSize = strlen(buffer);
-
-if((pSize = sendall(getSocket(fPtr), buffer, pSize)) == SOCKET_ERROR)
-     {
-     close(getSocket(fPtr));
-     return(-1);
-     }
-
-return(pSize);
-}
-
-int win_fgetc(FILE * fPtr)
-{
-char chr;
-
-if(!IOchannelIsSocketStream)
-    return(fgetc(fPtr));
-
-if(recv(getSocket(fPtr), &chr, 1, NO_FLAGS_SET) <= 0)
-    {
-    close(getSocket(fPtr));
-    return(-1);
-    }
-
-return(chr);
-}
-
-
-char * win_fgets(char * buffer, int size, FILE * fPtr)
-{
-int bytesReceived = 0;
-char chr;
-
-if(!IOchannelIsSocketStream)
-    return(fgets(buffer, size - 1, fPtr));
-
-while(bytesReceived < size)
-    {
-    if(recv(getSocket(fPtr), &chr, 1, NO_FLAGS_SET) <= 0)
-        {
-        close(getSocket(fPtr));
-        return(NULL);
-        }
-
-    *(buffer + bytesReceived++) = chr;
-
-    if(chr == '\n') break;
-    }
-
-*(buffer + bytesReceived) = 0;
-
-return(buffer);
-}
-
-#endif /* WINDOWS */
-
-#else /* for EMSCRIPTEN define dummy writeLog() */
-
-void writeLog(char * text, int newLine) { return; }
-
-#endif /* ifndef EMSCRIPTEN */
 /* eof */

@@ -16,7 +16,7 @@ On a modern machine just do a 'make testall'. I normally do:
 
 make clean; make; make testall
 
-all in a row separated by semicolons. On Windows, I work in a MSYS Bash shell.
+all in a row separated by semicolons.
 
 When you write a qa-xxx, write your diagnostics, whatever else, to the console. At the end do a: 
 

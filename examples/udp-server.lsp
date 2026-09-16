@@ -7,11 +7,7 @@
 ; Note, that net-listen in UDP mode only binds the socket
 ; to the local address, it does not 'listen' as in TCP/IP.
 ;
-; On Windows the received string for the remote host also contains
-; the port separated by a colon and must parsed out. On UNIX this
-; is not necessary.
 ; v.1.0
-; v.1.1 made it work for Windows parseing out the host label
 
 
 (set 'socket (net-listen 10001 "localhost" "udp"))

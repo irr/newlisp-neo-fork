@@ -6,10 +6,6 @@
 #
 # usage of 'fork', 'wait-pid', 'semaphore' and 'share'
 
-(when (= ostype "Windows")
-		(println "this will not run on Windows")
-		(exit))
-
 (constant 'wait -1 'sig 1 'release 0)
 
 (define (consumer n)

@@ -7400,3 +7400,51 @@ Dec 6, 2009
 
    Version banner updated to "newLISP Spark v.10.7.6s1"; copyright extended
    with "Copyright (C) 2026 Ivan Rocha".
+
+
+10.7.6s2 / Platform consolidation — Linux and macOS only
+   Maintained for this fork by Ivan Rocha, Copyright (C) 2026 Ivan Rocha.
+
+   All support removed for Windows (incl. MinGW/Cygwin/DLL builds), OS/2,
+   SunOS/Solaris/OpenSolaris, AIX, the BSD variants (FreeBSD, NetBSD,
+   OpenBSD, kFreeBSD), Tru64, Android and Emscripten/WASM (newlisp-js).
+   newLISP Spark now targets Linux (x86_64 and aarch64/DGX Spark) and macOS.
+
+   Removed files:
+   - win-dll.c, win-path.c, win-util.c, win-ffi.h, win-dll.def,
+     win64-dll.def, make.bat, make-win-everything.bat
+   - All platform makefiles: makefile_mingw*, makefile_cygwin*,
+     makefile_bsd*, makefile_netbsd*, makefile_kfreebsd*, makefile_sunos*,
+     makefile_opensolaris, makefile_aix*, makefile_os2, makefile_tru64,
+     makefile_emscripten_wasm_utf8, and the obsolete macOS makefiles
+     (leopard Intel/PPC, universal).
+   - The newlisp-js/ WASM directory and Android NDK files
+     (util/Android*.mk, util/Application.mk, doc/Android*, android_dist
+     targets).
+   - Windows-only tests/examples: qa-specific-tests/qa-win-dll,
+     qa-specific-tests/qa-utf16path, examples/win32demo.lsp,
+     doc/TRU64BUILD.txt.
+
+   Sources:
+   - Stripped all #ifdef branches for WINDOWS/WIN_32/WIN_64, OS2, SOLARIS,
+     SUNOS/SPARC, _BSD/KFREEBSD, TRU64, AIX, CYGWIN, ANDROID and EMSCRIPTEN
+     from newlisp.h, newlisp.c, nl-*.c, unix-lib.c, primes.h and protos.h;
+     POSIX (Linux/macOS) code paths are now unconditional.
+   - The opsys value reported by (sys-info -1) is now only linux=1 and
+     osx=3 (historic codes 2, 4-11 are retired); -2/-3 bit flags
+     (UTF-8, 64-bit, FFI, library, IPv6) unchanged.
+
+   Build:
+   - ./configure and ./configure-alt detect only Darwin and Linux; the
+     aarch64 auto-detection of makefile_dgx_spark_utf8_ffi is preserved.
+   - Top-level Makefile: winall*/android_dist* targets removed,
+     qa-win-dll dropped from check/checkall, win/newlisp-js files dropped
+     from the dist package.
+
+   Tests, modules, examples:
+   - Dead ostype branches (Windows/OS-2/Cygwin/Solaris/SunOS/Tru64Unix/BSD)
+     removed from the qa-specific-tests suites and from modules
+     (crypto, gsl, sqlite3, zlib, canvas, smtpx) and examples.
+   - Documentation (README.md, INSTALL.txt, newlisp_manual.html,
+     CodePatterns.html, newLISPdoc.html, ARCHITECTURE.md) updated to
+     describe Linux and macOS only.

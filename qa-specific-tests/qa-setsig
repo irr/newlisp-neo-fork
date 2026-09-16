@@ -16,10 +16,6 @@
 (println)
 (println "Testing signals")
 
-(when (find ostype '("Windows"))
-	(println "Cannot run qa-signal on this platform because uses 'fork'")
-	(exit))
-
 (set 'low (int (main-args 2)))
 (set 'high (int (main-args 3)))
 (set 'pid (sys-info -3))

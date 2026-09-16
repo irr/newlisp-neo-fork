@@ -192,7 +192,7 @@ When the Gen 0 nursery fills:
 
 In classic newLISP, `CELL_LAMBDA` cells reuse the `aux` member for an internal **last-element list pointer optimization** (`newCell->aux = (UINT)list;`).
 
-When compiling lambdas to bytecode, `aux` holds a pointer to a dynamically allocated `BYTECODE_OBJ *`. Previously, uncompiled lambdas held a pointer to a `CELL` in newLISP's chunk allocator, and attempts to free or access `(BYTECODE_OBJ *)cell->aux` resulted in `free()` being called on non-heap chunk memory, causing Windows NT heap corruption (`STATUS_HEAP_CORRUPTION 0xC0000374`).
+When compiling lambdas to bytecode, `aux` holds a pointer to a dynamically allocated `BYTECODE_OBJ *`. Previously, uncompiled lambdas held a pointer to a `CELL` in newLISP's chunk allocator, and attempts to free or access `(BYTECODE_OBJ *)cell->aux` resulted in `free()` being called on non-heap chunk memory, causing heap corruption (observed as `STATUS_HEAP_CORRUPTION 0xC0000374` on Windows when the bug was first diagnosed).
 
 ### 4.2 The `BYTECODE_MAGIC` Contract
 
@@ -217,7 +217,7 @@ All subsystems touching `cell->aux` adhere to this contract:
 
 ## 5. Empirical Benchmarks vs. Python 3.14 (and Python 3.12)
 
-Benchmarks were performed on a Windows x86_64 host comparing:
+Benchmarks were performed on an x86_64 host comparing:
 - **newLISP 10.7.6 Baseline**: Standard ORO tree-walker.
 - **CPython 3.12.3**: Standard Python virtual machine.
 - **CPython 3.14.4**: Modern Python virtual machine with specialized adaptive interpreter.

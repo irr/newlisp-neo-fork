@@ -13,10 +13,10 @@
 
 (set-locale "C")
 
-(set 'CC (if (= ostype "Windows") "gcc" "cc"))
+(set 'CC "cc")
 
-; shared object extension: .dylib on macOS/Windows, .so elsewhere
-(set 'FFI-EXT (if (member ostype '("MacOSX" "Windows")) ".dylib" ".so"))
+; shared object extension: .dylib on macOS, .so elsewhere
+(set 'FFI-EXT (if (= ostype "OSX") ".dylib" ".so"))
 ; -m32/-m64 only exist on x86; aarch64/other arches take no -m flag
 (set 'MFLAG
     (if (find "86" (join (exec "uname -m")))

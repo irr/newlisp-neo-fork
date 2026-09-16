@@ -3,16 +3,12 @@
 ;; @version 1.01 - initial release
 ;; @version 1.02 - renamed to crypto, new lib detection
 ;; @version 1.04 - added hmac encryption from amazon.com query API
-;; @version 1.05 - added added gnuwin32/bin/libeay32.dll for crypto on Win32
 ;; @version 1.06 - added ripemd160
-;; @version 1.07 - added libcrypto for OpenBSD and tested for 64-bit
 ;; @version 1.08 - help text corrections
-;; @version 1.09 - added lib path for Windows 7
 ;; @version 1.10 - added SHA256
 ;; @version 1.11 - added  path for UBUNTU Linux 13.04
 ;; @version 1.12 - added  path for UBUNTU Linux 12.04 and CentOS, removed old
 ;; @version 1.13 - fix for crypto:hmac. Thanks Cormullion, March 2014
-;; @version 1.14 - starting v10.6.3 import using "cdecl" on Windows
 ;; @version 1.15 - added path for Debian Jessie
 ;; @author Lutz Mueller 2007, Martin Quiroga 2007, Norman Deppenbroek 2009, 
 ;; @author Marc Hildman, 2011
@@ -29,23 +25,19 @@
 ;; ; or as a shorter alternative
 ;; (module "crypto.lsp")
 ;; </pre>
-;; <h2>Requirements:</h2> 
+;; <h2>Requirements:</h2>
 ;; On Mac OS X, UBUNTU and many other Linux, BSDs and other UNIX installations
 ;; <tt>libcrypto.so</tt> is installed by default as part of the OpenSSL
-;; libraries in <tt>usr/lib/libcrypto.so</tt>. If loading this module 
+;; libraries in <tt>usr/lib/libcrypto.so</tt>. If loading this module
 ;; finishes with an error message the path of the library should be corrected.
-;; For MS Windows a library is available at 
-;; @link http://gnuwin32.sourceforge.net/ http://gnuwin32.sourceforge.net/ .
-;; 
-;; This module has been tested on Mac OS X, UBUNTU Linux and FreeBSD.
+;;
+;; This module has been tested on Mac OS X and UBUNTU Linux.
 
 (context 'crypto)
 
 ; set library to path-name of the library on your platform OS
 ;
 (set 'files '(
-              "C:/Program Files/gnuwin32/bin/libeay32.dll" ; XP
-              "C:/Program Files (x86)/gnuwin32/bin/libeay32.dll" ; 7
               "/usr/lib/x86_64-linux-gnu/libcrypto.so" ; Ubuntu 12.04 LTS
               "/usr/lib/i386-linux-gnu/libcrypto.so"; Ubuntu 12.04
               "/lib/i386-linux-gnu/libcrypto.so.1.0.0" ; UBUNTU Linux 13.04
@@ -53,8 +45,6 @@
               "/usr/lib/x86_64-linux-gnu/libcrypto.so.1.0.0" ; Debian jessie
               "/usr/lib/libcrypto.so"
               "/usr/lib/libcrypto.so.4"
-              "/usr/lib/libcrypto.so.18.0" ; OpenBSD 4.6
-              "/usr/lib/libcrypto.so.19.0" ; OpenBSD 5.0
               "/usr/lib/libcrypto.dylib"
               ))
 
@@ -62,12 +52,10 @@
                       (find true (map file? files))
                       (throw-error "cannot find crypto library"))))
 
-(set 'option (if (= ostype "Windows") "cdecl"))
-
-(import library "MD5" option)
-(import library "RIPEMD160" option)
-(import library "SHA1" option)
-(import library "SHA256" option)
+(import library "MD5")
+(import library "RIPEMD160")
+(import library "SHA1")
+(import library "SHA256")
 
 ;; @syntax (crypto:md5 <string> <bool-raw>)
 ;; @param <string> The string buffer for which to calculate a MD5 hash

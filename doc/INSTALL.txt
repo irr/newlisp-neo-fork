@@ -15,14 +15,13 @@ CONTENTS
 (1) MINIMUM INSTALL
 -------------------
 
-For a minumum install, only the executable file, newlisp iin on UNIX like
-operating systems or newlisp.exe on Win32/64, needs to be moved to a directory
-in the executable path, i.e.  /usr/local/bin/newlisp on Unix. 
-No other files are required. 
+For a minumum install, only the executable file, newlisp, needs to be moved
+to a directory in the executable path, i.e.  /usr/local/bin/newlisp on Unix.
+No other files are required.
 
 If modules are installed the environment NEWLISPDIR can be defined to point to
 the modules parent directory. If NEWLISPDIR is not defined, newLISP sets
-it to /usr/local/share/newlisp during startup on MacOS, Linux, BSDs and other
+it to /usr/local/share/newlisp during startup on MacOS, Linux and other
 UNIX.
 
 To reduce an exisiting UNIX install to a minimum installation, remove all 
@@ -30,8 +29,7 @@ files in /usr/share/newlisp and /usr/local/share/doc/newlisp and the executable
 files /usr/local/bin/newlisp-edit and /usr/local/bin/newlispdoc.
 
 On Mac OX X remove also the files under the Applications icon in the 
-Applications folder. On Windows remove all file except newlisp.exe in 
-C:/Program Files/newlisp.
+Applications folder.
 
 
 (2) BUILD AND INSTALL newLISP FROM SOURCE
@@ -47,9 +45,7 @@ and check what OS flavor make would detect, type:
 
     ./configure
 
-This will automatically detect the platforms Linus, MacOS X, FreeBSD,
-OpenBSD, NetBSD, SunOS/Solaris and Win32. To build on Win32 a MinGW
-installation hosted by MSYS is required. See http://mingw.org.
+This will automatically detect the platforms Linux and MacOS X.
 
 If you agree with the platform detected by configure type:
 
@@ -83,16 +79,13 @@ benchmark are performed.
 (3) UNINSTALL
 -------------
 
-On MacOS, Linux, BSDs and other UNIX: 
+On MacOS, Linux and other UNIX: 
 
     sudo make uninstall
 
 or if installed with: make install_home
 
     make uninstall_home
-
-To manually uninstall on Windows remove all files in 
-c:\Program files\newlisp
 
 
 (4) COMMENTS FOR COMPILING AND LINKING
@@ -216,9 +209,7 @@ On all platforms simply execute:
  
     newlisp
 
-On Windows the execution path of newlisp.exe should be added to the environment 
-during installation. On all other platforms the newlisp binary should be in 
-/usr/local/bin/newlisp or /usr/bin/newlisp. 
+The newlisp binary should be in /usr/local/bin/newlisp or /usr/bin/newlisp.
 
 
 (7) COMMENTS ABOUT LIBFFI
@@ -231,8 +222,7 @@ introduced a short time ago in February of 2012. Except for module/gsl.lsp
 all other modules shipped in the distributions work with the older simple 
 form of import not requiring libffi. Both are documented in the manual.
 
-The configure utility will pick libffi enabled makefiles only for Windows, 
-MacOS and Linux. For all other OS it will pick makefiles not requiring libffi.
+The configure utility will pick libffi enabled makefiles for MacOS and Linux.
 
 Ted Walther's configure-alt utility, which automatically configures the 
 memory model (32-bit or 64-bit) never configures for the new extended ffi 
@@ -242,8 +232,8 @@ The path for ffi.h chosen in newlisp.h, is only valid for OSX and UBUNTU
 Linux, for all other OSs the path might be different and has to be adjusted. 
 
 In any case, libffi from http://sourceware.org/libffi/ is pretty easy to make 
-for most platforms. On Windows, Mac OSX and UBUNTU Linux it is already 
-installed by default.
+for most platforms. On Mac OSX and UBUNTU Linux it is already installed 
+by default.
 
 
                                  +++

@@ -5,8 +5,6 @@
 #
 # to see a list of all options, enter 'make help'
 #
-# Note! on some systems do 'gmake' instead of 'make' (most BSD)
-#
 # for 'make install' you have to login as 'root' else do 'make install_home'
 #
 # to make the distribution archive:  'make dist'
@@ -49,56 +47,13 @@ help:
 	@echo "  make version         # replace version number in several files after changing in Makefile"
 	@echo "  make bench           # run qa-bench compare to aprevious macOS version on specific hardware"
 	@echo "  make dist            # make a source distribution .tgz package "
-	@echo "  make android_dist    # make a source package for Android NDK compilation"
-	@echo "  make android_dist_utf8  # make a source package for Android NDK compilationi utf8"
 	@echo
-	@echo "Note! on some systems use gmake instead of make."
 	@echo "Note! not all makefiles are listed in this help, specifically 64-bit versions."
 	@echo " "
 	@echo "make files distinguish beteween os support and compilation with or without"
 	@echo "    lib readline support, 64bit v 32bit support, utf-8 support, extended function import interface
 	@echo " "
 	@echo "For other customization options (exe dir, install dir,  etc) see the file doc/INSTALL"
-
-# make 32 bit newlisp.exe and newlisp.dll on a MinGW, MSYS system
-# also needs the installer NSYS installed
-winall:
-	make clean
-	make -f makefile_mingw_ffi
-	rm *.o
-	make -f makefile_mingwdll_ffi
-	rm *.o
-	./newlisp qa-dot
-	tar czvf newlisp-win.tgz newlisp.exe newlisp.dll
-
-# make 32 bit newlisp.exe and newlisp.dll in UTF-8 flavor
-winall_utf8:
-	make clean
-	make -f makefile_mingw_utf8_ffi
-	rm *.o
-	make -f makefile_mingwdll_utf8_ffi
-	rm *.o
-	./newlisp qa-dot
-	tar czvf newlisp-win-utf8.tgz newlisp.exe newlisp.dll
-
-winall64:
-	make clean
-	make -f makefile_mingw64_ffi
-	rm *.o
-	make -f makefile_mingw64dll_ffi
-	rm *.o
-	./newlisp qa-dot
-	tar czvf newlisp-win64.tgz newlisp.exe newlisp.dll
-
-# make newlisp.exe and newlisp.dll in UTF-8 flavor
-winall64_utf8:
-	make clean
-	make -f makefile_mingw64_utf8_ffi
-	rm *.o
-	make -f makefile_mingw64dll_utf8_ffi
-	rm *.o
-	./newlisp qa-dot
-	tar czvf newlisp-win64-utf8.tgz newlisp.exe newlisp.dll
 
 # make macOS newlisp 64bit executable and dynamic link library
 macosall:
@@ -114,9 +69,7 @@ macosall:
 
 # this cleans the tree for a rebuild using the same configuration as before
 clean:
-	-rm -f *~ *.bak *.o *.obj *.map *.core core *.tgz *.txt TEST newlisp-universal
-	-rm -f newlisp-js*.*
-	-rm -rf newlisp-js-$(VERSION)
+	-rm -f *~ *.bak *.o *.map *.core core *.tgz *.txt TEST
 	-rm -f doc/*.bak util/*.bak examples/*.bak modules/*.bak
 	-chmod 644 *.h *.c Makefile makefile*
 	-chmod 755 configure configure-alt examples/*
@@ -136,7 +89,6 @@ check:
 	./newlisp qa-specific-tests/qa-cilk
 	./newlisp qa-specific-tests/qa-ref
 	./newlisp qa-specific-tests/qa-message
-	./newlisp qa-specific-tests/qa-win-dll
 	./newlisp qa-specific-tests/qa-bigint 10000
 	./newlisp qa-specific-tests/qa-bench
 
@@ -155,14 +107,12 @@ checkall:
 	./newlisp qa-specific-tests/qa-cilk
 	./newlisp qa-specific-tests/qa-ref
 	./newlisp qa-specific-tests/qa-message
-	./newlisp qa-specific-tests/qa-win-dll
 	./newlisp qa-specific-tests/qa-blockmemory
 	./newlisp qa-specific-tests/qa-exception
 	./newlisp qa-specific-tests/qa-float
 	./newlisp qa-specific-tests/qa-foop
 	./newlisp qa-specific-tests/qa-local-domain
 	./newlisp qa-specific-tests/qa-inplace
-#	./newlisp qa-specific-tests/qa-utf16path
 	./newlisp qa-specific-tests/qa-pipefork
 	./newlisp qa-specific-tests/qa-libffi
 	./newlisp qa-specific-tests/qa-bigint 10000
@@ -206,58 +156,18 @@ dist: clean
 	-mkdir newlisp-$(VERSION)/doc
 	-mkdir newlisp-$(VERSION)/util
 	-mkdir newlisp-$(VERSION)/qa-specific-tests
-	-mkdir newlisp-$(VERSION)/newlisp-js
 	cp README newlisp-$(VERSION)
 	cp nl*.c newlisp.c *.h pcre*.c index.cgi newlisp-$(VERSION)
-	cp win64-dll.def win-*.* unix*.c newlisp-$(VERSION)
+	cp unix*.c newlisp-$(VERSION)
 	cp Makefile configure* make* qa-dot qa-comma newlisp-$(VERSION)
 	cp modules/* newlisp-$(VERSION)/modules
 	cp examples/* newlisp-$(VERSION)/examples
 	cp doc/* newlisp-$(VERSION)/doc
 	cp util/* newlisp-$(VERSION)/util
 	cp qa-specific-tests/* newlisp-$(VERSION)/qa-specific-tests
-	cp -R newlisp-js/* newlisp-$(VERSION)/newlisp-js
 	tar czvf newlisp-$(VERSION).tgz newlisp-$(VERSION)/*
 	rm -rf newlisp-$(VERSION)
 	mv newlisp-$(VERSION).tgz ..
-
-
-# this makes a Android source package for compilation using the Android NDK
-# may want to change APP_PLATFORM spec to something different
-android_dist_utf8:
-	-mkdir newlisp-ndk-utf8-$(VERSION)
-	-mkdir newlisp-ndk-utf8-$(VERSION)/jni
-	-mkdir newlisp-ndk-utf8-$(VERSION)/libs
-	-mkdir newlisp-ndk-utf8-$(VERSION)/libs/armeabi
-	-mkdir newlisp-ndk-utf8-$(VERSION)/obj
-	-mkdir newlisp-ndk-utf8-$(VERSION)/obj/local
-	-mkdir newlisp-ndk-utf8-$(VERSION)/obj/local/armeabi
-	cp nl*.c newlisp.c *.h pcre*.c newlisp-ndk-utf8-$(VERSION)/jni
-	rm newlisp-ndk-utf8-$(VERSION)/jni/win-ffi.h
-	cp doc/Android.html newlisp-ndk-utf8-$(VERSION)
-	cp util/Android-utf8.mk newlisp-ndk-utf8-$(VERSION)/jni/Android.mk
-	cp util/Application.mk newlisp-ndk-utf8-$(VERSION)/jni
-	tar czvf newlisp-ndk-utf8-$(VERSION).tgz newlisp-ndk-utf8-$(VERSION)/*
-	rm -rf newlisp-ndk-utf8-$(VERSION)
-	mv newlisp-ndk-utf8-$(VERSION).tgz ..
-
-android_dist:
-	-mkdir newlisp-ndk-$(VERSION)
-	-mkdir newlisp-ndk-$(VERSION)/jni
-	-mkdir newlisp-ndk-$(VERSION)/libs
-	-mkdir newlisp-ndk-$(VERSION)/libs/armeabi
-	-mkdir newlisp-ndk-$(VERSION)/obj
-	-mkdir newlisp-ndk-$(VERSION)/obj/local
-	-mkdir newlisp-ndk-$(VERSION)/obj/local/armeabi
-	cp nl*.c newlisp.c *.h pcre*.c newlisp-ndk-$(VERSION)/jni
-	rm newlisp-ndk-$(VERSION)/jni/win-ffi.h
-	rm newlisp-ndk-$(VERSION)/jni/nl-utf8.c 
-	cp doc/Android.html newlisp-ndk-$(VERSION)
-	cp util/Android.mk newlisp-ndk-$(VERSION)/jni
-	cp util/Application.mk newlisp-ndk-$(VERSION)/jni
-	tar czvf newlisp-ndk-$(VERSION).tgz newlisp-ndk-$(VERSION)/*
-	rm -rf newlisp-ndk-$(VERSION)
-	mv newlisp-ndk-$(VERSION).tgz ..
 
 # this changes to the current version number in several files
 #

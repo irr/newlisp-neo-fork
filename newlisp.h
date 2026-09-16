@@ -40,73 +40,15 @@
 #define NEWLISPDIR "/usr/local/share/newlisp"
 #endif
 
-/* force ISO_C90 restrictions */
-#if defined(CYGWIN) || defined(OS2) || defined(SOLARIS) || defined(AIX) || defined(SUNOS)
-/* not sure how this plays with introducing C99 based inttypes.h header file in 10.6.3 */
-#define ISO_C90
-#endif
-
 #ifdef LINUX
 #define OSTYPE "Linux"
 #endif
 
-#ifdef ANDROID
-#define NO_SEMAPHORE 
-#endif
-
-#ifdef _BSD
-#define OSTYPE "BSD"
-#endif
-
-#ifdef KFREEBSD
-#define OSTYPE "GNU/kFreeBSD"
-#endif
-
 #ifdef MAC_OSX
-#ifdef EMSCRIPTEN
-#define OSTYPE "JS"
-#else
 #define OSTYPE "OSX"
 #endif
-#endif
 
-#ifdef SOLARIS
-#define OSTYPE "Solaris"
-#endif
-
-#ifdef SUNOS
-#define SOLARIS
-#define SPARC
-#define OSTYPE "SunOS"
-#endif
-
-#ifdef TRU64
-#define OSTYPE "Tru64Unix"
-#endif
-
-#ifdef AIX 
-#define OSTYPE "AIX" 
-#endif 
-
-
-#ifdef WINDOWS
-#define OSTYPE "Windows"
-#ifdef NEWLISP64
-#define WIN_64 
-#else
-#define WIN_32
-#endif
-#endif
-
-#ifdef CYGWIN
-#define OSTYPE "Cygwin"
-#endif
-
-#ifdef OS2 
-#define OSTYPE "OS/2" 
-#endif 
-
-/* include -DFFI in your makefile on the compile line 
+/* include -DFFI in your makefile on the compile line
    and -lffi on the link line */
 #ifdef FFI
 
@@ -114,11 +56,7 @@
 #include <ffi/ffi.h>
 #endif
 
-#if defined(WINDOWS)  
-#include "win-ffi.h" 
-#endif
-
-#if defined(LINUX) || defined(_BSD) || defined(KFREEBSD) || defined(CYGWIN) 
+#if defined(LINUX)
 #include <ffi.h>
 #endif
 
@@ -128,16 +66,7 @@
 
 #endif /* FFI */
 
-#ifdef TRU64
-#define strtoll strtol
-#define strtoull strtoul
-#endif
-
-#if defined(SOLARIS) || defined(TRU64) || defined(AIX)
-#define MY_RAND_MAX 2147483647
-#else
 #define MY_RAND_MAX RAND_MAX
-#endif
 
 #ifdef LIBRARY
 #define NO_FORK
@@ -146,32 +75,13 @@
 #define NO_TIMER
 #endif
 
-#ifdef EMSCRIPTEN
-#define NO_DEBUG
-#define NO_NET_FUNCTIONS
-#define NO_WEB_FUNCTIONS
-#endif
 
-
-/* 
+/*
 This is for 64bit large file support (LFS),
 */
 #define LFS
 #ifdef LFS
-#if defined(SOLARIS) || defined(TRU64) || defined(AIX)
-#define _LARGEFILE64_SOURCE 1
-#endif
 #define _FILE_OFFSET_BITS 64
-#endif
-
-#ifdef WINDOWS
-/* NOTE:
- * Windows XP [0x0501] end of support on 2014/04/08
- * WIndows Vista [0x0600] support ends on 2017/04/11
- */
-#ifndef _WIN32_WINNT
-#define _WIN32_WINNT 0x0600
-#endif
 #endif
 
 #include <signal.h>
@@ -184,8 +94,8 @@ This is for 64bit large file support (LFS),
 #include <dirent.h>
 #include <limits.h>
 
-/* some Linux do UTF-8 but do not have wcsftime() 
-   buggy in some GCC, i.e. MinGW and Solaris
+/* some Linux do UTF-8 but do not have wcsftime()
+   buggy in some GCC
 */
 
 #ifdef SUPPORT_UTF8
@@ -193,22 +103,10 @@ This is for 64bit large file support (LFS),
 #include <wchar.h>
 #define WCSFTIME
 #endif
-#ifdef WINDOWS
-#include <wchar.h>
-#endif
-#ifdef CYGWIN
-#include <wchar.h>
-#define WCSFTIME
-#endif
 #endif
 
-#ifdef WINDOWS
-#include <windef.h>
-#include <winbase.h>
-#else
 #include <termios.h>
 #include <sys/wait.h>
-#endif
 
 #include <unistd.h>
 #include <sys/time.h>
@@ -222,93 +120,17 @@ This is for 64bit large file support (LFS),
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#if defined(LINUX) || defined(WINDOWS) || defined(OS2)
+#ifdef LINUX
 #include <malloc.h>
 #endif
 
-#if defined(MAC_OSX) || defined(SOLARIS) || defined(TRU64) || defined(AIX)
+#if defined(MAC_OSX)
 #include <alloca.h>
 #endif
 
-#ifdef OS2
-#define vasprintf my_vasprintf 
-#define MY_VASPRINTF 
-#define NO_SPAWN
-#define NO_FORK
-#define NO_SHARE
-#define NO_PACKET
-#endif
-
-#if defined(SOLARIS) || defined(TRU64) || defined(AIX)
-#define vasprintf my_vasprintf
-#define MY_VASPRINTF
-#endif
-
-#if defined(SOLARIS) && defined(SPARC)
-#define setenv my_setenv 
-#define MY_SETENV 
-#endif
-
-#ifdef WINDOWS
-
-/* not needed on later MinGW, linker will complain if necessary  */
-#define MY_VASPRINTF
-#define vasprintf my_vasprintf
-
-#define MY_SETENV
-#define NO_SPAWN
-#define NO_FORK
-#define NO_NET_PACKET
-#define NO_NET_PING
-
-#define LITTLE_ENDIAN
-#define LINE_FEED "\r\n"
-#define LINE_FEED_LEN 2
-typedef struct {
-    int handle;
-} WIN_SOCKET_WRAPPER;
-#define getSocket(A) (((WIN_SOCKET_WRAPPER*)(A))->handle)
-#define setenv my_setenv
-#define random rand
-#define srandom srand
-#define ioctl ioctlsocket
-#define off_t off64_t
-#define lseek lseek64
-#define ftell ftello64
-#define getpid GetCurrentProcessId
-
-#ifndef SUPPORT_UTF8 
-#define mkdir  _mkdir
-#define rmdir  _rmdir
-#define lstat stat
-#endif
-
-#define realpath win_realpath
-
-/* WINDOWS UTF16 support for file paths */
-#ifdef SUPPORT_UTF8 
-#define USE_WIN_UTF16PATH
-#define rename rename_utf16
-#define open open_utf16
-#define mkdir mkdir_utf16
-#define rmdir rmdir_utf16
-#define unlink unlink_utf16
-#define chdir chdir_utf16
-#define opendir opendir_utf16
-#define DIR _WDIR
-#define lstat _wstat
-#define dirent _wdirent
-#define readdir _wreaddir
-#define closedir _wclosedir
-#endif /* SUPPORT_UTF8 */
-
-#endif /* WINDOWS */
-
-#ifndef WINDOWS
 #define LINE_FEED "\n"
 #define LINE_FEED_LEN 1
 #define NANOSLEEP
-#endif
 
 #ifndef O_BINARY
 #define O_BINARY 0
@@ -700,9 +522,6 @@ extern char startupDir[];
 extern char * tempDir;
 extern FILE * IOchannel;
 extern int ADDR_FAMILY;
-#ifdef WINDOWS
-extern int IOchannelIsSocket;
-#endif
 extern int MAX_CPU_STACK;
 extern INT MAX_CELL_COUNT;
 extern int version;

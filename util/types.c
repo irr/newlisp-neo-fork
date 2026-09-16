@@ -191,21 +191,12 @@ printf("%%llx   0xFFFFFFFFFFFFFFFFLL   %llx\n", 0xFFFFFFFFFFFFFFFFLL);
 printf("%%llX   0x7fffffffffffffffLL   %llX\n", 0x7fffffffffffffffLL);
 printf("%%llX   0x8000000000000000LL   %llX\n", 0x8000000000000000LL);
 printf("%%llX   0xffffffffffffffffLL   %llX\n", 0xffffffffffffffffLL);
-#ifndef TRU64
 printf("%%lld   0x7fffffffffffffffLL   %lld\n", 0x7fffffffffffffffLL);
 printf("%%lld   0x8000000000000000LL   %lld\n", 0x8000000000000000LL);
 printf("%%lld   0xffffffffffffffffLL   %lld\n", 0xffffffffffffffffLL);
 printf("%%llu   0x7fffffffffffffffLL   %lld\n", 0x7fffffffffffffffLL);
 printf("%%llu   0x8000000000000000LL   %llu\n", 0x8000000000000000LL);
 printf("%%llu   0xffffffffffffffffLL   %llu\n", 0xffffffffffffffffLL);
-#else
-printf("%%ld   0x7fffffffffffffffLL    %ld\n", 0x7FFFFFFFFFFFFFFFLL);
-printf("%%ld   0x8000000000000000LL    %ld\n", 0x8000000000000000LL);
-printf("%%ld   0xffffffffffffffffLL    %ld\n", 0xFFFFFFFFFFFFFFFFLL);
-printf("%%lu   0x7fffffffffffffffLL    %lu\n", 0x7FFFFFFFFFFFFFFFLL);
-printf("%%lu   0x8000000000000000LL    %lu\n", 0x8000000000000000LL);
-printf("%%lu   0xffffffffffffffffLL    %ld\n", 0xFFFFFFFFFFFFFFFFLL);
-#endif
 
 printf("\n");
 

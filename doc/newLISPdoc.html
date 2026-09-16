@@ -70,12 +70,6 @@ to process on the commandline. For example to process the files <tt>mysql.lsp</t
 newlispdoc mysql.lsp odbc.lsp sqlite.lsp
 </pre></blockquote>
 
-<p>Or on Windows:</p>
-
-<blockquote><pre>
-newlisp newlispdoc mysql.lsp odbc.lsp sqlite.lsp
-</pre></blockquote>
-
 <p>This will generate <tt>index.html</tt>, <tt>mysql.lsp.html</tt>, <tt>odbc.lsp.html</tt>
 and <tt>sqlite.lsp.html</tt> all in the same directory, where the command was executed.
  The page <tt>index.html</tt> contains links to all other pages.</p>
@@ -102,27 +96,13 @@ newlispdoc -s -d *.lsp
 
 <p>One or both options can be supplied.</p>
 
-
-<p>Or on Windows:</p>
-    
-<blockquote><pre>
-newlisp newlispdoc -s mysql.lsp odbc.lsp sqlite.lsp
-</pre></blockquote>
-
 <p>Since version 1.3 of newLISPdoc a file containing URLs of source file locations
 can be specified. This allows indexing and documenting of newLISP source code distributed
 on different sites:</p>
 
 <blockquote><pre>
-newlispdoc -url file-with-urls.txt 
-newlispdoc -s -url file-with-urls.txt 
-</pre></blockquote>
-
-<p>Or on Windows:</p>
-
-<blockquote><pre>
-newlisp newlispdoc -url file-with-urls.txt 
-newlisp newlispdoc -s -url file-with-urls.txt 
+newlispdoc -url file-with-urls.txt
+newlispdoc -s -url file-with-urls.txt
 </pre></blockquote>
 
 <p><tt>http://</tt> and <tt>file://</tt> URLs can be used. Like with individual files,

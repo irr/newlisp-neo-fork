@@ -219,9 +219,6 @@ CELL * p_errorText(CELL * params);
 CELL * p_eval(CELL * params);
 CELL * p_evalBlock(CELL * params);
 CELL * p_evalString(CELL * params);
-#ifdef EMSCRIPTEN
-CELL * p_evalStringJS(CELL * params);
-#endif
 CELL * p_exec(CELL * params);
 CELL * p_exists(CELL * params);
 CELL * p_exit(CELL * params);
@@ -540,13 +537,8 @@ char * netLastError(void);
 char * parsePackFormat(char * format, int * length, int * type);
 char * prompt(void);
 char * readStreamText(STREAM * stream, int * size);
-char * replaceString (char * keyStr, size_t keyLen, char * buff, size_t buffLen, CELL * exprCell, 
+char * replaceString (char * keyStr, size_t keyLen, char * buff, size_t buffLen, CELL * exprCell,
     					UINT * cnt, int options, size_t * newLen);
-#ifdef WINDOWS
-char * win_fgets(char * buffer, int  size, FILE * fPtr);
-char * win_realpath(const char * filepath, char * realpath);
-char * win_getExePath(char *);
-#endif
 
 char * which(char * name, char * path);
 size_t Curl_base64_encode(const char *inp, size_t insize, char **outptr);

@@ -23,7 +23,7 @@
 ;; for many examples with source code.
 ;;
 ;; Postscript files can be viewed using: 'open filename.ps' on Mac OS X
-;; or using the Ghostscript program on Unix's or Win32 to convert
+;; or using the Ghostscript program on Unix's to convert
 ;; to PDF or any graphics file format. Best quality is achieved
 ;; on Mac OS X when using the Preview.app viewer for loading the 
 ;; postscript files and converting to PDF or bitmapped formats like 
@@ -834,7 +834,7 @@
 ; ---------- setup ---------- 
 
 (set 'buffer "")
-(set 'line-feed (if (> (& 0xF (sys-info -1)) 5) "\r\n" "\n"))
+(set 'line-feed "\n")
 
 ; ---------- USER FUNCTIONS ----------
 

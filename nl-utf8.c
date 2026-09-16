@@ -27,9 +27,6 @@
 #include <wctype.h>
 #include "protos.h"
 
-/* from win-path.c */
-CELL * utf8_from_mbcs(void * mbcs_str);
-
 /*************************************************
 *    Macros and tables for character handling    *
 *        by Philip Hazel <ph10@cam.ac.uk>        *
@@ -264,11 +261,6 @@ size_t size;
 char * utf8str;
 
 params = getStringSize(params, (void *)&unicode, &size, TRUE);
-#ifdef WINDOWS
-if(getFlag(params)) /* its a MBCS string */
-    return(utf8_from_mbcs((void *)unicode));
-#endif
-    
 
 utf8str = callocMemory(size * UTF8_MAX_BYTES + 1);
 

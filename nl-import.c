@@ -21,9 +21,7 @@
 #include "newlisp.h"
 #include "protos.h"
 
-#ifndef WINDOWS
 #include <dlfcn.h>
-#endif
 
 #ifdef MAC_OSX
 #include <sys/mman.h>
@@ -56,75 +54,6 @@ void ffi_trampoline(ffi_cif *cif, void *ret, void **args, void *symbol);
 #endif
 
 
-#if defined(WINDOWS) || defined(CYGWIN)
-UINT stdcallFunction(UINT fAddress, UINT * args, int count);
-#endif
-
-#ifdef WINDOWS
-
-CELL * p_importLib(CELL * params)
-{
-char * libName;
-char * funcName;
-char * options = NULL;
-HINSTANCE hLibrary;
-CELL * pCell;
-SYMBOL * symbol;
-FARPROC initProc;
-int type = CELL_IMPORT_DLL;
-
-params = getString(params, &libName);
-params = getString(params, &funcName);
-if(params != nilCell)
-    {
-    if(params->next == nilCell)
-        params = getString(params, &options);
-#ifdef FFI
-    else
-        type = CELL_IMPORT_FFI;
-#endif
-    }
-
-if( (UINT)(hLibrary = LoadLibrary(libName)) < 32)
-    return(errorProcExt2(ERR_IMPORT_LIB_NOT_FOUND, stuffString(libName)));
-
-if(options != NULL && strcmp(options, "cdecl") ==  0)
-	type = CELL_IMPORT_CDECL;
-
-symbol = translateCreateSymbol(funcName, type, currentContext, TRUE);
-if(isFFIsymbol(symbol->flags)) /* don't redefine return current def */
-        return (copyCell((CELL *)symbol->contents));
-
-if(isProtected(symbol->flags))
-    return(errorProcExt2(ERR_SYMBOL_PROTECTED, stuffSymbol(symbol)));
-
-pCell = getCell(type);
-
-deleteList((CELL *)symbol->contents);
-symbol->contents = (UINT)pCell;
-if((pCell->contents = (UINT)GetProcAddress(hLibrary, (LPCSTR)funcName)) == 0)
-    return(errorProcExt2(ERR_IMPORT_FUNC_NOT_FOUND, stuffString(funcName)));
-
-/* put name of imported DLL into DLLs space for loadStartup() */
-initProc = GetProcAddress(hLibrary, (LPCSTR)"dllName");
-if(initProc != 0) (*initProc)(libName);
-
-#ifdef FFI
-symbol->flags |= SYMBOL_FFI | SYMBOL_PROTECTED;
-if(pCell->type == CELL_IMPORT_FFI)
-    {
-    pCell->aux = (UINT)calloc(sizeof(FFIMPORT), 1);
-    ((FFIMPORT *)pCell->aux)->name = symbol->name;
-    return(copyCell(ffiPreparation(pCell, params, FFI_FUNCTION)));
-    }
-#endif
-
-pCell->aux = (UINT)symbol->name;
-
-return(copyCell(pCell));
-}
-
-#else  /* UNIX and compatible operating systems */
 
 CELL * p_importLib(CELL * params)
 {
@@ -134,12 +63,7 @@ void * hLibrary;
 CELL * pCell;
 SYMBOL * symbol;
 char * error;
-#ifdef CYGWIN
-char * options = NULL;
-int type = CELL_IMPORT_DLL;
-#else
 int type = CELL_IMPORT_CDECL;
-#endif
 
 
 params = getString(params, &libName);
@@ -147,31 +71,12 @@ if(params != nilCell)
     params = getString(params, &funcName);
 else funcName = NULL;
 
-#ifdef CYGWIN
-if(params != nilCell)
-    { 
-    if(params->next == nilCell)   
-        {
-        params = getString(params, &options);
-        if(strcmp(options, "cdecl") ==  0)
-            type = CELL_IMPORT_CDECL;
-        }
-#ifdef FFI
-    else type = CELL_IMPORT_FFI;
-#endif
-    }
-#else
 if(params->next != nilCell)
     type = CELL_IMPORT_FFI;
-#endif
 
 hLibrary = 0;                
 
-#ifdef TRU64
-if((hLibrary = dlopen(libName, RTLD_LAZY)) == 0)
-#else
 if((hLibrary = dlopen(libName, RTLD_GLOBAL|RTLD_LAZY)) == 0)
-#endif
     return(errorProcExt2(ERR_IMPORT_LIB_NOT_FOUND, stuffString((char *)dlerror())));
 
 if(funcName == NULL)
@@ -207,7 +112,6 @@ if(pCell->type == CELL_IMPORT_FFI)
 pCell->aux = (UINT)symbol->name;
 return(copyCell(pCell));
 }
-#endif
 
 
 CELL * executeLibfunction(CELL * pCell, CELL * params)
@@ -252,11 +156,6 @@ while(params->type != CELL_NIL && count < 14)
     params = (CELL *)params->next;
     }
 
-#if defined(WINDOWS) || defined(CYGWIN)
-if(pCell->type == CELL_IMPORT_DLL)
-    return(stuffInteger(stdcallFunction(pCell->contents, args, count)));
-else
-#endif
 return(stuffInteger(cdeclFunction(pCell->contents, args, count)));
 }
 
@@ -319,76 +218,6 @@ UINT cdeclFunction(UINT fAddress, UINT * args, int count)
 }
 
 
-#if defined(WINDOWS) || defined(CYGWIN)
-UINT stdcallFunction(UINT fAddress, UINT * args, int count)
-{
-UINT _stdcall (*function)();
-
-function = (UINT _stdcall (*)())fAddress;
-
-switch(count)
-    {
-    case 0:
-            return (*function)();
-
-    case 1:
-            return  (*function)(args[0]);
-
-    case 2:
-            return  (*function)(args[0], args[1]);
-
-    case 3:
-            return  (*function)(args[0], args[1], args[2]);
-
-    case 4:
-            return  (*function)(args[0], args[1], args[2], args[3]);
-
-    case 5:
-            return  (*function)(args[0], args[1], args[2], args[3],
-                     args[4]);
-    case 6:
-            return  (*function)(args[0], args[1], args[2], args[3],
-                     args[4], args[5]);
-    case 7:
-            return  (*function)(args[0], args[1], args[2], args[3],
-                     args[4], args[5], args[6]);
-    case 8:
-            return  (*function)(args[0], args[1], args[2], args[3],
-                     args[4], args[5], args[6], args[7]);
-
-    case 9:
-            return  (*function)(args[0], args[1], args[2], args[3],
-                     args[4], args[5], args[6], args[7], args[8]);
-
-    case 10:
-            return  (*function)(args[0], args[1], args[2], args[3],
-                     args[4], args[5], args[6], args[7], args[8], args[9]);
-    case 11:
-            return  (*function)(args[0], args[1], args[2], args[3],
-                args[4], args[5], args[6], args[7],
-                args[8], args[9], args[10]);
-    case 12:
-            return  (*function)(args[0], args[1], args[2], args[3],
-                args[4], args[5], args[6], args[7],
-                args[8], args[9], args[10], args[11]);
-
-    case 13:
-            return  (*function)(args[0], args[1], args[2], args[3],
-                args[4], args[5], args[6], args[7],
-                args[8], args[9], args[10], args[11],
-                args[12]);
-    case 14:
-            return  (*function)(args[0], args[1], args[2], args[3],
-                args[4], args[5], args[6], args[7],
-                args[8], args[9], args[10], args[11],
-                args[12], args[13]);
-    default:
-        break;
-    }
-
-return(0);
-}
-#endif
 
 
 /* 16 callback functions for up to 8 parameters */
@@ -847,7 +676,7 @@ ffi = (FFIMPORT *) cell->aux;
 if(ffi->cstruct && ffi->cstruct->type != FFI_TYPE_STRUCT)
     return(errorProc(ERR_FFI_STRUCT_EXPECTED));
 
-/* This is redundant? works with or without it on OSX, Windows, Linux. 
+/* This is redundant? works with or without it on OSX, Linux. 
 if(ffi->cstruct->size != 0)
     if(ffi_prep_cif(&ffi->cif, FFI_DEFAULT_ABI, 0, ffi->cstruct,0) != FFI_OK)
         return(errorProc(ERR_FFI_PREP_FAILED));

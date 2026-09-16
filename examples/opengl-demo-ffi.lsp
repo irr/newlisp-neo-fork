@@ -1,14 +1,13 @@
 #!/usr/bin/env newlisp 
 # OpenGL and GLUT demo - opengl-demo-ffi.lsp
 # Using extended import and callback API based on libffi
-# tested on Windows and OS X 32/64-bit (Intel) minimum version newLISP 10.3.10
+# tested on OS X 32/64-bit (Intel) minimum version newLISP 10.3.10
 
 # verson 2.1 December 2011 - remade with extended FFI for 32 and 64-bit
 # verson 2.2 February 2012 - check if newLISP compiled for extended FFI
-# verson 2.3 April 2015 - changed ostype to Windows from Win32
 # this version works on both, 32-bit and 64-bit newLISP
 # on a Mac OSX standard install everything neede for 32-bit or 64-bit
-# is included. On Windows XP and Windows 7, glut32.dll must be added. 
+# is included.
 # on Linux opengl.so, libglut.so and libffi.so must be added, most
 # Linux seem to include libffi.so already. See also the C version:
 # http://graphics.stanford.edu/courses/cs248-01/OpenGLHelpSession/code_example.html
@@ -34,26 +33,20 @@
 # The following are small float types
 # GLfloat GLclampf
 # and all types ending 3f:
-# 
-# Note! on Windows 7 glut32.dll should be installed c:/Windows/SysWOW64/ not system32
+#
 
-(set 'is-64-bit (= 0x100 (& 0x100 (sys-info -1))))
 (set 'has-ffi (= 1024 (& 1024 (sys-info -1))))
 
 (unless has-ffi
     (println "need newLISP compiled for extended FFI")
     (exit))
 
-(if 
+(if
   (= ostype "OSX") ;; drawings will be visible only on x86 based OS X
   (begin
     (set 'GL_LIB "/System/Library/Frameworks/OpenGL.Framework/Libraries/libGL.dylib")
     (set 'GLUT_LIB "/System/Library/Frameworks/GLUT.Framework/GLUT")
   )
-  (find ostype '("Windows", "Cygwin"))
-  (begin
-    (set 'GL_LIB "opengl32.dll") ; works dfor both 32 and 64 bit
-    (set 'GLUT_LIB (if is-64-bit "glut64.dll" "glut32.dll")))
   (= ostype "Linux") ;; not tested
   (begin
     (set 'GL_LIB "libGL.so")

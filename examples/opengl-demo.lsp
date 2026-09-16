@@ -1,21 +1,16 @@
 #!/usr/bin/env newlisp 
 # OpenGL and GLUT demo - opengl-demo.lsp
 # using simple import and callback API
-# tested on Windows and OS X (Intel) 32-bit only!
+# tested on OS X (Intel) 32-bit only!
 
 # version 1.2, July 2009 - make drawObject working with motion
 
 # this version runs only on 32-bit newLISP and libraries
-# for 64-bit newlisp use http://www.newlisp.org/downloads/OpenGL/opengl-demo-ffi-lsp.txt, 
-# which runs both 32/64 versions of newLISP. For this extended ffi version newLISP 10.4.0 
-# or later is required. The extended ffi interface is present in all binary distributions 
-# (Windows, OSX, Ubuntu)
+# for 64-bit newlisp use http://www.newlisp.org/downloads/OpenGL/opengl-demo-ffi-lsp.txt,
+# which runs both 32/64 versions of newLISP. For this extended ffi version newLISP 10.4.0
+# or later is required. The extended ffi interface is present in all binary distributions
+# (OSX, Ubuntu)
 
-# WIn32
-# opengl32.dll - should be already on you WindowsXP installation or at www.opengl.org  
-# glut32.dll -  available here: http://www.opengl.org/resources/libraries/glut/
-# Note! on Windows 7 glut32.dll should be installed c:/Windows/SysWOW64/ not system32
-# 
 # Linux/UNIX - not tested
 # libGLU.so - should be on your Linux/UNIX installation or at www.opengl.org
 # glut-3.7.so - already on your system or at:
@@ -53,16 +48,12 @@
 	(println "Use opengl-demo-ffi.lsp, which runs on both, 32-bit and 64-bit")
 	(exit))
 
-(if 
+(if
   (= ostype "OSX") ;; drawings will be visible only on x86 based OS X
   (begin
     (set 'GL_LIB "/System/Library/Frameworks/OpenGL.Framework/Libraries/libGL.dylib")
     (set 'GLUT_LIB "/System/Library/Frameworks/GLUT.Framework/GLUT")
   )
-  (find ostype '("Windows", "Cygwin"))
-  (begin
-    (set 'GL_LIB "opengl32.dll")
-    (set 'GLUT_LIB "glut32.dll"))
   (= ostype "Linux") ;; not tested
   (begin
     (set 'GL_LIB "libGL.so")
@@ -152,7 +143,7 @@
 )
 
 (define (keyboard key x y)
-	(if (= (& key 0xFF) 27) (exit)) ; 0xFF mask necessary in Windows
+	(if (= (& key 0xFF) 27) (exit))
 	(println "key:" (& key 0xFF) " x:" x  " y:" y))
 
 (define (mouse button state x y)

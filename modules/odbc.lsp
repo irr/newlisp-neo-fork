@@ -5,11 +5,11 @@
 ;; @author Lutz Mueller, 2003-2010
 ;;
 ;; <h2>OCBC Interface functions</h2>
-;; This module has only been tested on Win32 but should work on UNIX too
-;; with few modifications. At the beginning of the program file include
+;; This module should work on UNIX-like systems with few modifications.
+;; At the beginning of the program file include
 ;; a 'load' statement for the module:
 ;; <pre>
-;; (load "c:/Program Files/newlisp/modules/odbc.lsp")
+;; (load "/usr/share/newlisp/modules/odbc.lsp")
 ;; ; or shorter
 ;; (module "odbc.lsp")
 ;; </pre>
@@ -19,8 +19,8 @@
 ;; usage of the module and can be used to test a correct ODBC installation and 
 ;; data source setup.
 ;; <h2>Requirements</h2>
-;; On Win32 platforms required 'odbc32.dll' is part of the OS's installations. 
-;; There is no UNIX function import tested or adapted for this ODBC module.
+;; An ODBC driver manager library ('libodbc' from unixODBC or iODBC)
+;; must be installed on the system.
 ;; <h2>Function overview</h2>
 ;; <pre>
 ;;  (ODBC:connect data-source-name-str user-name-str password-str) ; connect to a data source
@@ -39,8 +39,8 @@
 ; ----------------- import functions from DLL -------------------
 
 
-; set to the appropiate library on Unix or Win32
-(define ODBC-library "odbc32.dll")
+; set to the appropiate library on your platform OS
+(define ODBC-library "libodbc.so")
 
 ; Constants used, make sure these constants are Ok on your Operating System or Platform.
 ; Note, that (define var value) is the same as as saying (set 'var value), it is here more
@@ -190,8 +190,8 @@
 ;; @param <str-password> The password of the user.
 ;; @return 'true' on success, 'nil' on failure.
 ;; Connect to a data-source with a user name and password.
-;; The data-source name must be configured first via ODBC
-;; administrative tools, i.e. a control applet on Win32.
+;; The data-source name must be configured first via the ODBC
+;; administrative tools of your OS.
 ;;
 ;; @example 
 ;; (ODBC:connect "mydatabase" "johndoe" "secret")
@@ -488,7 +488,6 @@
 	;   (ODBC:query "create table fruits (name CHAR(20), qty INT(3))")
 	; for "aUser" and "secret" you may just put empty strings ""
 	; i.e. (ODBC:connect "test" "" "")
-	; when on Windows on the same machine
 
 	(if (not (ODBC:connect "test-db" "" "")) (exit))
 

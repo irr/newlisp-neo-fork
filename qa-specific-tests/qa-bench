@@ -1064,9 +1064,7 @@
     (env "key" "value") 
     (= (env "key") "value")
     (env "key" "") ; remove key
-    (if (= ostype "Solaris")
-        (= (env "key" ""))
-        (not (env "key")))
+    (not (env "key"))
 ))
 
 (define (test-erf)
@@ -1110,17 +1108,14 @@
 (define (sub-read-exec ) 
    (write-file "exectest" {(println "hello") (exit)})
    (and
-    (set 'result (if (find ostype '("Windows" "OS/2"))
-        (exec "newlisp exectest") 
-        (exec "./newlisp exectest")))
+    (set 'result (exec "./newlisp exectest"))
     (= "hello" (last  result)) 
     (delete-file "exectest")))
 
 (define (sub-write-exec )
   (and 
     (write-file "testexec" {(write-file "exectest" (read-line))})
-    (if (find ostype '("Windows" "OS/2"))
-     (exec "newlisp testexec" "HELLO") (exec "./newlisp testexec" "HELLO"))
+    (exec "./newlisp testexec" "HELLO")
     (= "HELLO" (read-file "exectest"))
     (delete-file "testexec")
     (delete-file "exectest")))
@@ -1297,71 +1292,28 @@
    (= (test-format-r '(("foo" "bar") ("foo" "baz"))) 
       "[ [ 'foo', 'bar' ], [ 'foo', 'baz' ] ]")
    ; test 64-bit formatting
-   (if (find ostype '("Windows")) ;; Windows
-      (begin
-        (and
-         (= (format "%I64d" 0x7fffffffffffffff) "9223372036854775807")
-         (= (format "%I64x" 0x7fffffffffffffff) "7fffffffffffffff")
-         (= (format "%I64u" 0x7fffffffffffffff) "9223372036854775807")
-         (= (format "%I64d" 0x8000000000000000) "-9223372036854775808")
-         (= (format "%I64x" 0x8000000000000000) "8000000000000000")
-         (= (format "%I64u" 0x8000000000000000) "9223372036854775808")
-         (= (format "%I64d" 0xFFFFFFFFFFFFFFFF) "-1")
-         (= (format "%I64x" 0xFFFFFFFFFFFFFFFF) "ffffffffffffffff")
-         (= (format "%I64u" 0xFFFFFFFFFFFFFFFF) "18446744073709551615"))
-      )
-      (begin ;; UNIX like OS 
-        (if (= ostype "Tru64Unix") ;TRU64
-          (begin
-            (and
-              (= (format "%d" 0x7fffffff) "2147483647")
-              (= (format "%d" 0xffffffff) "-1")
-              (= (format "%u" 0xffffffff) "4294967295")
-              (= (format "%i" 0x7fffffff) "2147483647")
+   (= (format "%d" 0x7fffffff) "2147483647")
+   (= (format "%d" 0xffffffff) "-1")
+   (= (format "%u" 0xffffffff) "4294967295")
 
-              ; truncate
-              (= (format "%d" 0x7fffffffffffffff) "-1")
-              (= (format "%u" 0x7fffffffffffffff) "4294967295")
-              (= (format "%x" 0x7fffffffffffffff) "ffffffff") 
-              (= (format "%X" 0x7fffffffffffffff) "FFFFFFFF") 
+   ; truncate
+   (= (format "%d" 0x7fffffffffffffff) "-1")
+   (= (format "%u" 0x7fffffffffffffff) "4294967295")
+   (= (format "%x" 0x7fffffffffffffff) "ffffffff")
+   (= (format "%X" 0x7fffffffffffffff) "FFFFFFFF")
 
-              (= (format "%ld" 0x7fffffffffffffff) "9223372036854775807")
-              (= (format "%lu" 0xffffffffffffffff) "18446744073709551615")
-              (= (format "%li" 0x7fffffffffffffff) "9223372036854775807")
-              (= (format "%lx" 0x7fffffffffffffff) "7fffffffffffffff")
-              (= (format "%ld" 0x8000000000000000) "-9223372036854775808")
-              (= (format "%lx" 0x8000000000000000) "8000000000000000")
-              (= (format "%lu" 0x8000000000000000) "9223372036854775808")
-              (= (format "%ld" 0xFFFFFFFFFFFFFFFF) "-1")
-              (= (format "%lx" 0xFFFFFFFFFFFFFFFF) "ffffffffffffffff")
-              (= (format "%lu" 0xFFFFFFFFFFFFFFFF) "18446744073709551615"))
-          )
-          (begin
-            (and
-              (= (format "%d" 0x7fffffff) "2147483647")
-              (= (format "%d" 0xffffffff) "-1")
-              (= (format "%u" 0xffffffff) "4294967295")
+   (= (format "%lld" 0x7fffffffffffffff) "9223372036854775807")
+   (= (format "%llx" 0x7fffffffffffffff) "7fffffffffffffff")
+   (= (format "%llu" 0x7fffffffffffffff) "9223372036854775807")
+   (= (format "%lld" 0x8000000000000000) "-9223372036854775808")
+   (= (format "%llx" 0x8000000000000000) "8000000000000000")
+   (= (format "%llu" 0x8000000000000000) "9223372036854775808")
+   (= (format "%lld" 0xFFFFFFFFFFFFFFFF) "-1")
+   (= (format "%llx" 0xFFFFFFFFFFFFFFFF) "ffffffffffffffff")
+   (= (format "%llu" 0xFFFFFFFFFFFFFFFF) "18446744073709551615")
+))
 
-              ; truncate
-              (= (format "%d" 0x7fffffffffffffff) "-1")
-              (= (format "%u" 0x7fffffffffffffff) "4294967295")
-              (= (format "%x" 0x7fffffffffffffff) "ffffffff") 
-              (= (format "%X" 0x7fffffffffffffff) "FFFFFFFF") 
-
-              (= (format "%lld" 0x7fffffffffffffff) "9223372036854775807")
-              (= (format "%llx" 0x7fffffffffffffff) "7fffffffffffffff")
-              (= (format "%llu" 0x7fffffffffffffff) "9223372036854775807")
-              (= (format "%lld" 0x8000000000000000) "-9223372036854775808")
-              (= (format "%llx" 0x8000000000000000) "8000000000000000")
-              (= (format "%llu" 0x8000000000000000) "9223372036854775808")
-              (= (format "%lld" 0xFFFFFFFFFFFFFFFF) "-1")
-              (= (format "%llx" 0xFFFFFFFFFFFFFFFF) "ffffffffffffffff")
-              (= (format "%llu" 0xFFFFFFFFFFFFFFFF) "18446744073709551615"))
-          )
-      )
-))))
-
-(define (test-format-r obj , s) 
+(define (test-format-r obj , s)
   (cond 
    ((string? obj)   (format "'%s'" obj)) 
    ((list? obj) (format "[ %s ]" (join (map test-format-r obj) ", ")))
@@ -2665,9 +2617,7 @@
     (set 'Bf:Bf "")
     (set 'S:S "hello world")
     (write-line Bf S)
-    (if (find ostype '("Windows" "OS/2"))
-        (= Bf:Bf "hello world\r\n")
-        (= Bf:Bf "hello world\n"))
+    (= Bf:Bf "hello world\n")
 ))
 
 
@@ -2691,14 +2641,7 @@
 (define (test-~ )
   (and
     (= (~ 0) -1)
-    (if 
-        (find ostype '("Windows" "OS/2"))
-        (= (format "%I64x" (~ 0xa0a0a0a0a0a0a0a0)) "5f5f5f5f5f5f5f5f")
-
-        (= ostype "True64Unix")
-        (= (format "%lx" (~ 0xa0a0a0a0a0a0a0a0)) "5f5f5f5f5f5f5f5f")
-
-        (= (format "%llx" (~ 0xa0a0a0a0a0a0a0a0)) "5f5f5f5f5f5f5f5f"))
+    (= (format "%llx" (~ 0xa0a0a0a0a0a0a0a0)) "5f5f5f5f5f5f5f5f")
 ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; MAIN ENTRY POINT ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

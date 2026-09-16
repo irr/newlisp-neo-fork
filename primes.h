@@ -219,9 +219,6 @@ PRIMITIVE primitive[] =
 	
 	/* ------------ string ops ------------- */
 	{"eval-string",	p_evalString,	0},
-#ifdef EMSCRIPTEN
-    {"eval-string-js", p_evalStringJS, 0},
-#endif
 	{"read-expr",	p_readExpr,		0},
 	{"join",		p_join,	        0},
 	{"chop",		p_chop,	        0},
@@ -295,7 +292,6 @@ PRIMITIVE primitive[] =
 	{"append-file",	p_appendFile,	0},
 	{"read-file",	p_readFile, 0},
 	{"read-key",	p_readKey,	0},
-#ifndef EMSCRIPTEN
 	{"get-url",		p_getUrl,	0},
 	{"put-url",		p_putUrl, 	0},
 	{"post-url",	p_postUrl,	0},
@@ -321,13 +317,9 @@ PRIMITIVE primitive[] =
 #ifndef NO_SEMAPHORE
 	{"semaphore",	p_semaphore,0},
 #endif
-#ifndef WINDOWS
 	{"peek",		p_peek,		0},
-#endif
 
-#endif /* ifndef EMSCRIPTEN */
 
-	
 	/* ---------  system --------- */
 	{"set-locale",		p_setLocale,	0},
 	{"for-all",		p_forAll,	0},
@@ -349,10 +341,8 @@ PRIMITIVE primitive[] =
 	{"last-error", 	p_lastError, 0},
 	{"history", 	p_history, 0},
 
-#ifndef EMSCRIPTEN
 #ifndef NO_SIGNAL
 	{"signal",		p_signal,	0},
-#endif
 #endif
 	{"sys-info",	p_systemInfo,	0},
 	{"sys-error",	p_systemError,	0},
@@ -374,14 +364,12 @@ PRIMITIVE primitive[] =
 	{"self",		p_self,		0},
 	{"prefix",		p_prefix,	0},
 	{"default",		p_default,	0},
-#ifndef EMSCRIPTEN
 	{"timer",       p_timerEvent,	0},
 	{"import",		p_importLib,	0},
 	{"callback",	p_callback,		0},
 #ifdef FFI
     {"struct",      p_struct,       0},
 #endif
-#endif /* ifndef EMSCRIPTEN */
 	{"delete",		p_deleteSymbol,	0},
 	{"new",			p_new,		0},
 	{"def-new",		p_defineNew,	0},
@@ -429,15 +417,12 @@ PRIMITIVE primitive[] =
 	{"time",		p_time,	        0},
 	{"time-of-day",	p_timeOfDay,    0},
 	{"now",			p_now,			0},
-#ifndef WINDOWS
 	{"date-parse",	p_dateParse,	0},
 	{"parse-date",	p_dateParse,	0},
-#endif
 	{"date-list",	p_dateList,		0},
 	{"date-value",  p_dateValue,	0},
 
 	/* ------------ net working ------------ */
-#ifndef EMSCRIPTEN
 	{"net-close",		p_netClose,	0},
 	{"net-service",		p_netService,	0},
 	{"net-connect",		p_netConnect,	0},
@@ -453,17 +438,14 @@ PRIMITIVE primitive[] =
 	{"net-send-to",		p_netSendTo,	0},
 	{"net-send-udp",	p_netSendUDP,	0},
 	{"net-listen",		p_netListen,	0},
-#ifndef WINDOWS
 	{"net-packet",		p_netPacket,	0},
 	{"net-ping",		p_netPing,	0},
-#endif
 	{"net-peek",		p_netPeek,	0},
 	{"net-select",		p_netSelect,	0},
 	{"net-sessions",	p_netSessions,	0},
 	{"net-eval",		p_netEval,	0},
 	{"net-interface",	p_netInterface, 0},
  	{"net-error",		p_netLastError,	0},
-#endif
 	{NULL,NULL,0},
 };
 

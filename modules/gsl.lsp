@@ -2,7 +2,6 @@
 ;; @description Selected functions from the GNU Scientific Library
 ;; @version 1.0 - initial release. Minimum newLISP version is 10.4.0.
 ;; @version 1.1 - added check for extended ffi enabled version.
-;; @version 1.2 - changed ostype Win32 to Windows
 ;; @version 1.3 - replaced 0.0 in CholeskyD with (float 0) for all locales
 ;; @author Lutz Mueller 2012, 2014
 
@@ -167,8 +166,7 @@
 
 ; the following assumes the libararies installed in the system library path
 (set 'LIB 
-	(if 
-		(= ostype "Windows") "libgsl-0.dll" ; 32-bit or 64-bit
+	(if
 		(= ostype "OSX")   "libgsl.dylib" ; 32-bit or 64-bit
 		(= ostype "Linux") "/usr/local/lib/libgsl.so" ; 32-bit or 64-bit
 	))
@@ -177,8 +175,7 @@
 ; the symbol cblas_sdsdot is not needed but newLISP versions before
 ; 10.4.2 can not use the 'import' statement without a function name
 ; libgslcblas is mainly needed internally by libgsl.
-; On windows the library is automatically loaded by libgsl-0.dll.
-(if 
+(if
     (= ostype "OSX") (import "libgslcblas.dylib" "cblas_sdsdot")
     (= ostype "Linux") (import "/usr/local/lib/libgslcblas.so" "cblas_sdsdot")
 )

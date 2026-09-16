@@ -26,8 +26,6 @@
 
 (define LIBC
   (case ostype
-    ("Windows" "msvcrt.dll")
-    ("Cygwin" "msvcrt.dll")
     ("OSX" "libc.dylib")
     ("BSD" (get-libc-name) )
     ("Linux" (get-libc-name) )
@@ -77,14 +75,9 @@
 (import LIBC "asctime" "char*" "void*")
 (import LIBC "localtime" "void*" "void*")
 
-(if (find ostype '("Windows"))
-	(struct 'tm "int" "int" "int" "int" "int" "int" "int" "int" "int")
-	(struct 'tm "int" "int" "int" "int" "int" "int" "int" "int" "int" "long" "char*")
-)
+(struct 'tm "int" "int" "int" "int" "int" "int" "int" "int" "int" "long" "char*")
 
-(if (find ostype '("Windows" "Cygwin"))
-    (set 'tmlist '(1 2 3 4 5 6 7 8 9))
-    (set 'tmlist '(1 2 3 4 5 6 7 8 9 10 "hello world")))
+(set 'tmlist '(1 2 3 4 5 6 7 8 9 10 "hello world"))
 
 (if (= tmlist (unpack tm (pack tm tmlist)))
     (println "unpack pack => true")

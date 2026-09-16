@@ -20,9 +20,7 @@
 (define (help func-name)
   (when (= func-name "help") (set 'func-name ""))
   (if (find func-name "|+*-") (push "\\" func-name))
-  (set 'helpfile (read-file (if (= ostype "Win32")
-    (string (env "NEWLISPDIR") "/newlisp_manual.html") 
-    "/usr/local/share/doc/newlisp/newlisp_manual.html")))
+  (set 'helpfile (read-file "/usr/local/share/doc/newlisp/newlisp_manual.html"))
   (set 'html-text (join 
     (find-all (format {(syntax: \(%s.*?)(<br/>|</h4>)} func-name ) helpfile $1) "\n"))
   (replace "<.*?>" html-text "" 0)
@@ -36,10 +34,8 @@
 (prompt-event (fn (ctx) (string ctx ":" (real-path) "> ")))
 
 ; handle some special commands, newLISP expressions and shell commands
-(command-event (fn (s) 
-  (if (and (< (sys-info -2) 10401) (= ostype "Win32"))
-        (set 's (chop s 2)))
-  (if 
+(command-event (fn (s)
+  (if
     ; get syntax help
     (starts-with s "\\?|help" 0)
     (help (last (parse s " ")))

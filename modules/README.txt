@@ -3,10 +3,6 @@ execute the following statement inside the newlisp-x.x.x/modules directory:
 
    newlispdoc -s -d *.lsp
 
-or on Windows
-
-   newlisp newlispdoc -s -d *.lsp
-
 This will genereate an index page index.html and one html file each
 for each module of the form name.lsp.html, where name is the name of the module.
 For additional conversion options see newlisp-x.x.x/doc/newLISPdoc.html .

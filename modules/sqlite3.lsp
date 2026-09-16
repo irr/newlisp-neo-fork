@@ -45,9 +45,9 @@
 ;;
 ;; See also the documentation at @link http://sqlite.org sqlite.org
 ;;
-;; <h2>Requirements:</h2> 
-;; One of the libraries sqlite3.dll for MS Windows or libsqlite3.so for UNIX like
-;; operating systems is required from http://www.sqlite.org.
+;; <h2>Requirements:</h2>
+;; The library libsqlite3.so for UNIX like operating systems is required
+;; from http://www.sqlite.org.
 ;;
 ;; SQLite is an <in-process> database. The library contains the whole database
 ;; system. An extra database server is not required. SQLite also has limited
@@ -91,17 +91,13 @@
 ;
 (set 'files (list
     "/usr/lib/libsqlite3.so" ; SuSE Linux
-    "/usr/local/lib/libsqlite3.so" ; Linux, BSD, Solaris
-    "/usr/pkg/lib/libsqlite3.so" ; NetBSD
-    "/usr/local/lib/libsqlite3.so.13.3" ; OpenBSD 4.6
+    "/usr/local/lib/libsqlite3.so" ; Linux, BSD
     "/usr/lib/libsqlite3.0.dylib" ; Mac OSX Darwin
     "/usr/lib64/libsqlite3.so" ; for 64Bit Fedora CentOS 6 Linux
     "/usr/lib/x86_64-linux-gnu/libsqlite3.so" ; for UBUNTU 64-bit
     "/usr/lib/x86_64-linux-gnu/libsqlite3.so.0"
     "/usr/lib/i386-linux-gnu/libsqlite3.so" ; for UBUNTU 32-bit
     "/usr/lib/i386-linux-gnu/libsqlite3.so.0"
-    "sqlite3.dll" ; Windows DLL path and current directory
-    (string (env "PROGRAMFILES") "/sqlite3/sqlite3.dll") ; Windows SQLite3 std install
 ))
 
 

@@ -21,9 +21,6 @@
 #include <errno.h>
 #include "protos.h"
  
-#ifdef WINDOWS
-#include <winsock2.h>
-#else
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/socket.h>
@@ -32,16 +29,10 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#endif
 
 #define BUFFSIZE 10240
 
-#ifndef WINDOWS
 #define SOCKET_ERROR -1
-#else
-#define fgets win_fgets
-#define close closesocket  /* for file operations on Windows use _close */
-#endif
 
 /* from nl-sock.c */
 extern UINT netErrorIdx;
@@ -57,21 +48,6 @@ extern int httpSafe;
 
 char * requestMethod[] = {"GET", "HEAD", "PUT", "PUT", "POST", "DELETE"};
 
-/* with MinGW gcc 3.4.5 not needed
-#ifdef WINDOWS
-struct timezone {
-       int     tz_minuteswest;
-       int     tz_dsttime;
-};
-
-int gettimeofday( struct timeval *tp, struct timezone *tzp );
-#endif
-*/
-
-#ifdef WINDOWS
-extern int IOchannelIsSocketStream;
-#endif
-
 extern SYMBOL * transferEvent;
 
 ssize_t readFile(char * fileName, char * * buffer);
@@ -83,7 +59,6 @@ void trimTrailing(char * ptr);
 CELL * webError(int no, int sockno);
 CELL * base64(CELL * params, int type);
 
-#ifndef EMSCRIPTEN
 jmp_buf socketTimeoutJump;
 INT socketTimeout = 0;
 struct timeval socketStart;
@@ -750,7 +725,6 @@ snprintf(msg, 64, "ERR: %s", netErrorMsg[errorNo]);
 
 return(stuffString(msg));
 }
-#endif /* ifndef EMSCRIPTEN */
 
 /***************************************************************************
  *                                  _   _ ____  _
@@ -970,7 +944,6 @@ size_t Curl_base64_encode(const char *inp, size_t insize, char **outptr)
 /* ---- End of Base64 Encoding ---- */
 
 
-#ifndef EMSCRIPTEN
 /* --------------------------- HTTP server mode -----------------------------
    Handles GET, POST, PUT and DELETE requests
    handles queries in GET requests and sets environment variables 
@@ -1024,21 +997,10 @@ if(media != NULL)
     printf("Content-length: %d\r\nContent-type: %s\r\n\r\n", (int)size, media);
 #endif
     }
-#ifndef WINDOWS
-size = write(fileno(IOchannel), content, size); 
-fflush(IOchannel); 
-fclose(IOchannel); 
+size = write(fileno(IOchannel), content, size);
+fflush(IOchannel);
+fclose(IOchannel);
 IOchannel = NULL;
-#else /* it is WINDOWS */
-if(IOchannel != NULL && IOchannelIsSocketStream)
-    {
-    sendall(getSocket(IOchannel), content, size);
-    close(getSocket(IOchannel));
-    }
-else 
-    varPrintf(OUT_CONSOLE, "%s", content);
-return;
-#endif
 #ifdef DEBUGHTTP
 printf("# content:%s:\r\n", content);
 fflush(stdout);
@@ -1207,11 +1169,7 @@ switch(type)
             }
 
         transferred = readPayLoad(size, buff, outFile, request);
-#ifdef WINDOWS
-        _close(outFile);
-#else
         close(outFile);
-#endif
         if(transferred != -1)
             {
             snprintf(buff, 255, "%d bytes transferred for %s\r\n", (int)transferred, request);
@@ -1275,11 +1233,7 @@ while(fgets(buff, MAX_LINE - 1, IOchannel) != NULL)
     if(my_strnicmp(buff, "content-length:", 15) == 0)
         {
         size = parseValue(buff + 15);
-#if defined(WINDOWS) || defined(TRU64)
-        snprintf(numStr, 16, "%lu", (long unsigned int)size);
-#else
         snprintf(numStr, 16, "%llu", (long long unsigned int)size);
-#endif
         setenv("CONTENT_LENGTH", numStr, 1);
         }
     if(my_strnicmp(buff, "pragma: append", 14) == 0)
@@ -1315,14 +1269,7 @@ printf("# Payload size:%ld\r\n", (long)size);
 while(size > 0)
     {
     readsize = (size > MAX_BUFF) ? MAX_BUFF : size;
-#ifndef WINDOWS
-    bytes = read(fileno(IOchannel), buff + offset, readsize); 
-#else /* it is WINDOWS */
-    if(IOchannel != NULL && IOchannelIsSocketStream)
-        bytes = recv(getSocket(IOchannel), buff + offset, readsize, NO_FLAGS_SET);
-    else
-        bytes = read(fileno(IOchannel), buff + offset, readsize);
-#endif
+    bytes = read(fileno(IOchannel), buff + offset, readsize);
 
 #ifdef DEBUGHTTP
     printf("Payload bytes:%ld:%s:\r\n", (long)bytes, buff + offset);
@@ -1347,10 +1294,8 @@ while(size > 0)
 
     transferred += bytes;
     size -= bytes;
-    }   
-#ifndef WINDOWS
-fflush(NULL); 
-#endif
+    }
+fflush(NULL);
 return(transferred);
 }
 
@@ -1363,11 +1308,6 @@ char * command;
 char * content = NULL;
 ssize_t size;
 char tempfile[PATH_MAX];
-#ifdef WINDOWS_BEFORE_SETTING_BINARYMODE
-char * ptr;
-char * pos;
-int bytes = 0;
-#endif
 
 srandom(milliSecTime());
 
@@ -1392,11 +1332,7 @@ command = alloca(size);
 snprintf(tempfile, PATH_MAX, "%s/nl%04x-%08x-%08x", 
     tempDir, (unsigned int)size, (unsigned int)random(), (unsigned int)random());
 
-#if defined (WINDOWS) || (OS2)
-snprintf(command, size - 1, "newlisp \"%s\" > %s", request, tempfile);
-#else
 snprintf(command, size - 1, "./\"%s\" > %s", request, tempfile);
-#endif
 
 if((handle = popen(command, "w")) == NULL)
     {
@@ -1442,8 +1378,6 @@ typedef struct
     char * extension;
     char * type;
     } T_MEDIA_TYPE;
-
-/* T_ prefix added in 10.4.8 to compile on later MinGW */
 
 T_MEDIA_TYPE mediaType[] = {
     {".avi", "video/x-msvideo"},
@@ -1498,7 +1432,6 @@ while(*src)
 *dest = 0;
 }
 
-#endif /* ifndef EMSCRIPTEN */
 #endif /* ifndef LIBRARY */
 /* eof */
 

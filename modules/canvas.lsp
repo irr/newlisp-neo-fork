@@ -9,7 +9,6 @@
 ;; @version 1.4 cv:petal was broken (JavaScript change?)
 ;; @version 1.44 doc corrections
 ;; @version 1.45 cv:render works on Emscripten newLISP
-;; @version 1.52 changed Win32 to Windows and spelling
 ;; @version 1.6 sign error in shape caused incompatibility with postscript.lsp
 ;; @version 1.61 eliminated canvas-15.tgz link
 ;; @version 1.7 fixed ellipse, petal, pie, polygon, shape fill first the stroke
@@ -83,7 +82,7 @@
 
 ;; A package with more demo files can be downloaded from 
 ;; @link http://www.newlisp.org/canvas/canvas-15.tgz www.newlisp.org/canvas/canvas-15.tgz .
-;; The demo files assume the Safari (4.0 beta) browser on Mac OS X and Windows or
+;; The demo files assume the Safari (4.0 beta) browser on Mac OS X or
 ;; The Firefox browser (3.1. beta 3) on Linux and start the browser automatically.
 ;; Change the last 'cv:render' line in each of the demo file to manually load
 ;; the generated page-file spciefied in the 'cv:render' statement.
@@ -464,10 +463,6 @@
 ;; file <tt>/tmp/noname.html</tt> is shown. This is the best mode for
 ;; interactive development.
 ;;
-;; On Windows 'cv:render' tries to open 'c:\Program Files\Safari\Safari.exe'.
-;; The function 'cv:render' at the end of the source in 'canvas.lsp'
-;; can be modified for a different browser.
-;;
 ;; When a file-name is supplied, then 'cv:render' generates a HTML
 ;; file. When the file-name is specified as <tt>"cgi"</tt>, then
 ;; output is directed to standard out. This is useful for writing CGI
@@ -584,7 +579,7 @@
 (set 'pi (mul 2 (acos 0)))
 (set 'pi/2 (acos 0))
 
-(set 'line-feed (if (> (& 0xF (sys-info -1)) 5) "\r\n" "\n"))
+(set 'line-feed "\n")
 (set 'header-tags "") ; header tags from cv:header go here
 (set 'canvas-script "") ; graphics statements go here
 (set 'body-html "") ; body html written with cv:html goes here
@@ -1095,13 +1090,6 @@ function drawAllCanvas() { try
   (cond
     ( (= ostype "OSX")
       (exec "open /tmp/noname.html"))
-    ( (= ostype "Windows")
-      (set 'prog (string "cmd /c \"" (env "PROGRAMFILES") 
-;                 Use either Firefox or Safari 4.0
-;                 "/Mozilla Firefox 3.1 Beta 2/firefox.exe\""))
-                  "/Safari/Safari.exe\""))
-;     (println "->" prog "<-")
-      (exec (string prog " file://c:/tmp/noname.html")))
     ( true // all Linux and other unix
       (set 'files '(
             "/usr/bin/sensible-browser"

@@ -1,10 +1,8 @@
 #!/usr/bin/env newlisp
 
 ; - scan - v.1.0 port scanner in newLISP
-; much faster on Mac OSX, LINUX and other UNIX than on Windows
-; as on UNIX net-connect can return on failure before the timeout
-; has exspired. On Windows net-connect will wait out the timeout
-; if it cannot connect.
+; on Mac OSX, LINUX and other UNIX net-connect can return on
+; failure before the timeout has exspired.
 ;
 ; Example:
 ;

@@ -47,9 +47,6 @@
 ;; installation of MySQL or have a different name.
 ;; Change accordingly in the code at the beginning.
 ;;
-;; On MS Windows 10 (64 bit) use the 'libmariadb.dll' library available
-;; here from @link https://downloads.mariadb.org https://downloads.mariadb.org
-;;
 ;; The MySQL server itself may reside on a different machine
 ;; on the network. The library 'libmysqlclient' will communicate
 ;; with that server. The correct connection is created using
@@ -119,7 +116,6 @@
 (set 'NEWLISP64 (not (zero? (& (sys-info -1) 256))))
 
 (set 'files '(
-    "/usr/local/lib/libmysqlclient.so.20.0" ; OpenBSD 4.9
     "/usr/lib/libmysqlclient.so" ; Linux, UNIX
     "/usr/lib/mysql/libmysqlclient.so" ; Linux Fedora
     "/usr/lib64/mysql/libmysqlclient.so" ; Linux Fedora CentOS 6.x

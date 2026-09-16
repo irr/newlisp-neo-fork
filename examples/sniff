@@ -6,12 +6,11 @@
 ; 2010-April-27 added 'packet' output format for whole packet
 ;               added output of unknown packets
 ; 2010-April-29 help text improvements
-; 2010-May-29 added library path for OpenBSD 4.6 
+; 2010-May-29 added library path for OpenBSD 4.6
 ; 2013-Sep-22 change stats to pstats (stats is function since 10.4.2)
 ;
 ; See also http://www.tcpdump.org/pcap.htm
-; tested on Mac OS X 10.6 and UBUNTU 9.4 and Win32
-; for a Win32 library goto http://www.winpcap.org/
+; tested on Mac OS X 10.6 and UBUNTU 9.4
 ; first version L.M.in March 2010
 ;
 ; This script must be run with super user prigileges.
@@ -20,13 +19,10 @@
 	(println [text]
 - sniff - network packet sniffer, version 1.21, April 2010
 
-USAGE UNIX: 
-    sudo sniff <device> [<filter> [<count> [hex | ascii | packet]]] 
+USAGE UNIX:
+    sudo sniff <device> [<filter> [<count> [hex | ascii | packet]]]
 
-USAGE Win32:
-    newlisp sniff <device> [<filter> [<count> [hex | ascii | packet]]]   
-
-The program must run in super user or administrator mode. On Unix the 
+The program must run in super user or administrator mode. On Unix the
 sudo utility can be used, and the OS will ask for the root password.
 
 EXAMPLES: 
@@ -37,8 +33,8 @@ EXAMPLES:
     sniff ""
     
 Use an empty string "" or '' for <device> to let sniff find out a device.
-This works well on Windows but frequently does not work on UNIX, where
-it is better to use the ifconfig utility to find a connected device. 
+This frequently does not work on UNIX, where
+it is better to use the ifconfig utility to find a connected device.
 
 The 'hex' option dumps data in HEX and ASCII, the 'ascii' option only in 
 ASCII format. Both options only dump the data part of the packet after the 
@@ -60,8 +56,6 @@ default output mode is no output.
 	"/usr/lib/libpcap.dylib"   ; Mac OS X 10.6
 	"/usr/lib/libpcap.so.0.8"  ; UBUNTU 9.04
 	"/usr/lib/libpcap.so.1.0.0"; UBUNTU 9.04
-	"/usr/lib/libpcap.so.6.0"  ; OpenBSD 4.8
-	"c:/windows/system32/wpcap.dll" ; Win32 XP
 ))
 
 (set 'libpcap (files (or

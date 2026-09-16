@@ -170,7 +170,7 @@ Content-Transfer-Encoding: %s
       ; indicate this is the last boundary if no attachments
       (if (zero? (length attachments)) "--" "")) )
 ;
-; This crude gettimezone hack only works for USA on Win32
+; This crude gettimezone hack only works for USA timezones
 ; someone else can fix it for the rest of the world
 ; Removed (encode64-line on subject to reduce SpamAssasin value
 ;

@@ -20,6 +20,6 @@ udp-client.lsp ................ demo for UDP client
 udp-server.lsp ................ demo for UDP server
 upload.cgi .................... CGI for uploading a file (works on Apache and newLISP httpd)
 upload.html ................... used for upload.cgi
-win32demo.lsp ................. demo for importing Win32 SDK GUI functions
 xmlrpc.cgi .................... demo for xmlrpc CGI
+
 

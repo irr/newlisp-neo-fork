@@ -41,13 +41,12 @@
 
 (set 'files (list
     "/usr/lib/libc.dylib" ; MacOS/Darwin
-    "/usr/lib/libc.so.51.0" ; OpenBSD 4.6
     "/lib/x86_64-linux-gnu/libc.so.6" ; Ubuntu 12.04 LTS
     "/lib/i386-linux-gnu/libc.so.6" ; UBUNTU Linux
     "/lib/i686-linux-gnu/libc.so.6" ; UBUNTU Linux
     "/lib64/libc.so.6" ; CentOS 6.x
     "/lib/libc.so.6" ; UBUNTU Linux 9.04
-    "/usr/lib/libc.so" ; Linux, BSD, Solaris
+    "/usr/lib/libc.so" ; Linux
 ))
 
 (set 'library (files (or

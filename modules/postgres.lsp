@@ -18,10 +18,9 @@
 ;; </pre>
 ;;
 ;; A version of 'libpq' for a specific platform is required:
-;;  
+;;
 ;; on LINUX/UNIX: 'libpq.so' <br>
 ;; on Mac OS X:   'libpq.dylib' <br>
-;; on Windows:    'libpq.dll'
 ;;
 ;; This library is installed when using the install
 ;; package @link http://www.postgresql.org/download/ .
@@ -118,9 +117,8 @@
 ;;
 ;; <h3>Implementation Notes</h3>
 ;; As of 19 March 2015.
-;; On Windows only works with x86 (32bit) PostgreSQL install.
 ;; pg_config must be in the path.
-;; Tested on OSX 10.10.2, Linux SMP Debian 3.16.7-ckt7-1, Windows 8.1 [version 6.3.9600]
+;; Tested on OSX 10.10.2 and Linux SMP Debian 3.16.7-ckt7-1
 
 ; make this module compatible with version less than 10.1.11
 (when (< (sys-info -2) 10110)
@@ -133,18 +131,15 @@
 
 (if pg_lib_dir
   (set 'files
-    (list 
+    (list
       (append (first pg_lib_dir) "/libpq.dylib")  ; shared Mac OS X libs
       (append (first pg_lib_dir) "/libpq.so")   ; loadable elf libs Posix Unix Linux
-      (append (first pg_lib_dir) "/libpq.dll")  ; Windows lib
   ))
   (set 'files '(
-    "/usr/local/lib/libpq.so.5.1" ; OpenBSD 4.6
     "/usr/lib/libpq.so" ; CentOS or other Linux
     "/usr/lib64/libpq.so" ; Linux 64bit
     "/usr/lib/libpq.so.5.1" ; Debian
     "/usr/local/pgsql/lib/libpq.dylib" ; Mac OS X
-    "c:/Program Files/PostgreSQL/8.3/bin/libpq.dll" ; Win32
   )))
 
 ; find the library file
