@@ -7448,3 +7448,31 @@ Dec 6, 2009
    - Documentation (README.md, INSTALL.txt, newlisp_manual.html,
      CodePatterns.html, newLISPdoc.html, ARCHITECTURE.md) updated to
      describe Linux and macOS only.
+
+
+10.7.6s2 / VM fixes: raw-argument primitives and multi-branch if
+   Maintained for this fork by Ivan Rocha, Copyright (C) 2026 Ivan Rocha.
+
+   Two pre-existing bytecode-VM bugs (present since the TCO work, exposed
+   now that qa-dot runs to completion):
+
+   - fork and spawn compiled calls pre-evaluated their expression argument
+     in the parent process. (fork (exit)) or (spawn 'r (exit)) inside a
+     function executed (exit) in the PARENT (strace: no clone() syscall,
+     silent exit(0)); (fork (dotimes ...)) ran the body in the parent.
+     The compiler now falls back to the tree-walking evaluator for calls
+     to fork/spawn, like the quoted-local spawn fix in s1. qa-dot, which
+     silently stopped at the fork test with exit 0, now runs to
+     completion.
+
+   - The bytecode compiler only implemented the 3-argument (if c a b)
+     form. With more arguments, newLISP treats trailing arguments as
+     condition/result pairs; the compiler compiled the rest as a CALL of
+     the next condition, silently yielding nil when it was falsy —
+     e.g. (if nil 1 nil 2 3) returned nil instead of 3, and qa-dot's
+     test-~ failed. The compiler now emits the full chain with p_if's
+     exact semantics: first truthy condition yields its result; if all
+     conditions are falsy the value of the LAST condition is returned
+     (a trailing result of the last condition is never evaluated); the
+     $it anaphor holds the first condition's value during branch
+     evaluation and is reset on the fall-through path, like p_if().

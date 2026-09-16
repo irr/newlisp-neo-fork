@@ -4,6 +4,8 @@
 #include "nl-vm.h"
 #include "protos.h"
 
+extern SYMBOL * itSymbol; /* the $it anaphor, set by (if ...) — see p_if() */
+
 #define VM_INITIAL_STACK_SIZE  (256 * 1024)
 #define VM_INITIAL_FRAMES_SIZE (64 * 1024)
 
@@ -450,33 +452,91 @@ static void compileExpr(Compiler * c, CELL * expr, int is_tail)
                 SYMBOL * hsym = (SYMBOL *)head->contents;
                 const char * name = hsym->name;
 
-                /* Special form: (if cond then-expr [else-expr]) */
+                /* Special form: (if cond then-expr [else-expr]
+                                  [cond-1 result-1 ...]) — must match the
+                   tree-walking p_if() exactly: odd-position expressions are
+                   conditions; the first truthy condition yields its result;
+                   if all conditions are falsy the value of the LAST
+                   condition is returned (a trailing result of the last
+                   condition is never evaluated); $it holds the first
+                   condition's value while branches evaluate and is reset
+                   afterwards. */
                 if (strcmp(name, "if") == 0)
                 {
-                    CELL * cond = head->next;
-                    if (cond == nilCell) { c->failed = 1; return; }
-                    CELL * then_expr = cond->next;
-                    if (then_expr == nilCell) { c->failed = 1; return; }
-                    CELL * else_expr = then_expr->next;
+                    CELL * clause = head->next;
+                    if (clause == nilCell) { c->failed = 1; return; }
 
-                    compileExpr(c, cond, 0);
-                    int else_jump = emitJump(c, OP_JUMP_IF_NIL);
-                    compileExpr(c, then_expr, is_tail);
+                    int nargs = 0;
+                    CELL * cc = clause;
+                    while (cc != nilCell) { nargs++; cc = cc->next; }
 
-                    if (else_expr != nilCell)
+                    int end_jumps[64];
+                    int num_ends = 0;
+                    int first_cond = 1;
+                    uint16_t it_idx = addSymbol(c, itSymbol);
+
+                    CELL * expr = clause;
+                    int pos = 1;
+                    while (pos < nargs)
                     {
-                        int end_jump = emitJump(c, OP_JUMP);
+                        CELL * result = (CELL *)expr->next;
+                        int last_pair = (pos + 1 == nargs);
+
+                        compileExpr(c, expr, 0);
+
+                        if (first_cond)
+                        {
+                            emitOp(c, OP_DUP);
+                            emitOp(c, OP_STORE_GLOBAL);
+                            emitUint16(c, it_idx);
+                            first_cond = 0;
+                        }
+
+                        if (last_pair)
+                        {
+                            /* keep the condition value: per p_if() it is the
+                               result when this last condition is falsy */
+                            emitOp(c, OP_DUP);
+                        }
+
+                        int else_jump = emitJump(c, OP_JUMP_IF_NIL);
+
+                        if (last_pair)
+                            emitOp(c, OP_POP); /* drop the copy on the truthy path */
+
+                        /* truthy: evaluate the result expression; it is in
+                           tail position when nothing substantial follows */
+                        int res_tail = is_tail && (last_pair || pos + 2 == nargs);
+                        compileExpr(c, result, res_tail);
+
+                        if (num_ends >= 64) { c->failed = 1; return; }
+                        end_jumps[num_ends++] = emitJump(c, OP_JUMP);
                         patchJump(c, else_jump);
-                        compileExpr(c, else_expr, is_tail);
-                        patchJump(c, end_jump);
+
+                        if (last_pair)
+                            break; /* falsy path: cond value is the result */
+
+                        expr = result->next;
+                        pos += 2;
                     }
-                    else
+
+                    if (pos == nargs)
                     {
-                        int end_jump = emitJump(c, OP_JUMP);
-                        patchJump(c, else_jump);
-                        emitOp(c, OP_NIL);
-                        patchJump(c, end_jump);
+                        /* odd argument count: the last condition's own
+                           value is the result when all is falsy (and it is
+                           the returned value even when truthy) */
+                        compileExpr(c, expr, is_tail);
                     }
+
+                    /* restore $it to nil on the fall-through path, like
+                       p_if() does at IF_RETURN (tail branches return
+                       directly and skip this) */
+                    emitOp(c, OP_NIL);
+                    emitOp(c, OP_STORE_GLOBAL);
+                    emitUint16(c, it_idx);
+
+                    while (num_ends > 0)
+                        patchJump(c, end_jumps[--num_ends]);
                     return;
                 }
 
@@ -1189,6 +1249,22 @@ static void compileExpr(Compiler * c, CELL * expr, int is_tail)
                 {
                     c->failed = 1;
                     return;
+                }
+
+                /* fork and spawn evaluate their expression argument in the
+                   spawned child process, so it must reach them raw. The VM
+                   pre-evaluates call arguments (see OP_CALL), which would run
+                   the expression in the parent — fall back to the tree-walker. */
+                if (hsym->contents != 0 && hsym->contents != (UINT)nilCell)
+                {
+                    CELL * sc = (CELL *)hsym->contents;
+                    if (sc->type == CELL_PRIMITIVE &&
+                        (strcmp(hsym->name, "fork") == 0 ||
+                         strcmp(hsym->name, "spawn") == 0))
+                    {
+                        c->failed = 1;
+                        return;
+                    }
                 }
             }
 
