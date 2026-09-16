@@ -20,7 +20,7 @@ DESCRIPTION
        to  specify  these before the source files to be loaded. If a -e switch
        is used the programtext is evaluated and then newlisp  exits  otherwise
        evaluation  continues  interactively  (unless  an  exit  occurs  during
-       lisp-file interpretation). In newLISP Neo, pure lambda expressions are
+       lisp-file interpretation). In newLISP Spark, pure lambda expressions are
        automatically compiled and executed by an integrated direct-threaded
        bytecode virtual machine with generational garbage collection.
 
@@ -164,11 +164,11 @@ EXIT STATUS
        case of abnormal exit.
 
 AUTHOR
-       Lutz Mueller <lutz@nuevatec.com>. Modernized for newLISP Neo (2026).
+       Lutz Mueller <lutz@nuevatec.com>. Modernized for newLISP Spark (2026).
 
        http://www.newlisp.org/ - the newLISP home page
 
 
 
-version newLISP Neo               2026                                 newlisp(1)
+version newLISP Spark               2026                                 newlisp(1)
 

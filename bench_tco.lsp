@@ -1,7 +1,7 @@
-;; Tail Call Optimization Benchmark for newLISP Neo
+;; Tail Call Optimization Benchmark for newLISP Spark
 
 (println "========================================")
-(println "       newLISP Neo TCO Benchmark        ")
+(println "       newLISP Spark TCO Benchmark        ")
 (println "========================================")
 
 ;; 1. Self-tail recursion test (100,000,000 steps)

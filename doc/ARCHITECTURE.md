@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-This document describes the design, implementation, and safety mechanisms of the high-performance execution engine introduced to newLISP Neo.
+This document describes the design, implementation, and safety mechanisms of the high-performance execution engine introduced to newLISP Spark.
 
 The enhanced engine combines three core architectural pillars:
 1. **Direct-Threaded Bytecode Virtual Machine (`nl-vm.c`, `nl-vm.h`)**: Compiles lambda abstract syntax trees (ASTs) into compact linear bytecode executed by a computed-goto dispatch loop, eliminating tree-walking overhead and C stack recursion.
@@ -98,7 +98,7 @@ For recursive calls like `(fib (- n 1))`, `OP_CALL_SELF` pushes a new `VM_FRAME`
 
 ### 2.5 Tail Call Optimization (TCO)
 
-newLISP Neo implements complete Tail Call Optimization, guaranteeing $O(1)$ constant stack space for self-recursive and mutual tail calls.
+newLISP Spark implements complete Tail Call Optimization, guaranteeing $O(1)$ constant stack space for self-recursive and mutual tail calls.
 
 #### 2.5.1 Tail Position Analysis
 The compiler threads an `is_tail` flag during AST traversal in `compileExpr`:
@@ -221,11 +221,11 @@ Benchmarks were performed on a Windows x86_64 host comparing:
 - **newLISP 10.7.6 Baseline**: Standard ORO tree-walker.
 - **CPython 3.12.3**: Standard Python virtual machine.
 - **CPython 3.14.4**: Modern Python virtual machine with specialized adaptive interpreter.
-- **newLISP Neo with Bytecode VM + GenGC**: This optimized implementation.
+- **newLISP Spark with Bytecode VM + GenGC**: This optimized implementation.
 
 ### 5.1 Benchmark Results Summary
 
-| Benchmark | Baseline newLISP | Python 3.12 | Python 3.14 | newLISP Neo | vs. Python 3.14 | vs. Baseline |
+| Benchmark | Baseline newLISP | Python 3.12 | Python 3.14 | newLISP Spark | vs. Python 3.14 | vs. Baseline |
 |---|---|---|---|---|---|---|
 | **Recursive Fibonacci `(fib 30)`** | 592.5 ms | 186.9 ms | 86.0 ms | **42.6 ms** | **2.02x faster** | **13.9x faster** |
 | **1M Iteration While Loop** | 190.2 ms | 78.8 ms | 37.2 ms | **31.3 ms** | **1.19x faster** | **6.08x faster** |
