@@ -182,7 +182,11 @@ int result;
  
 va_start(argptr,format);
 /* new in 7201 , defined in nl-filesys.c if not in libc */
-vasprintf(&buffer, format, argptr); 
+if(vasprintf(&buffer, format, argptr) == -1)
+    {
+    va_end(argptr);
+    return(-1);
+    }
 
 result = send(sock, buffer, strlen(buffer), NO_FLAGS_SET);
 if(debug) varPrintf(OUT_CONSOLE, "%s", buffer);
@@ -1003,7 +1007,7 @@ if(strncmp(content, "Status:", 7) == 0)
     while(*content == '\r' || *content == '\n') { content++; size--; }
     }
 else
-    strncpy(status, "200 OK", 6);
+    memcpy(status, "200 OK", 7);
 
 varPrintf(OUT_CONSOLE, "HTTP/1.0 %s\r\n", status);
 varPrintf(OUT_CONSOLE, "Server: newLISP v.%d (%s)\r\n", version, OSTYPE);

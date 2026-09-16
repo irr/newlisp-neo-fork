@@ -1829,7 +1829,7 @@ else  /* read from child */
     {
     if((child = getSpawnedChild(pid)) == NULL)
         errorProcExt2(ERR_INVALID_PID, stuffInteger(pid));
-        socket = child->socket;
+    socket = child->socket;
     }
 
 if(!socket)

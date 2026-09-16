@@ -7332,3 +7332,71 @@ Dec 6, 2009
    - 100% passing on qa-dot (250+ built-ins, scoping, contexts; 0 errors).
    - 100% passing on qa-comma (full comma-locale test suite; 0 errors).
 
+
+10.7.6s1 / aarch64 (ARM64) Support — NVIDIA DGX Spark, VM Correctness & GC Safety
+   Maintained for this fork by Ivan Rocha, Copyright (C) 2026 Ivan Rocha.
+   The project is renamed from "newLISP Neo" to "newLISP Spark" (repo:
+   newlisp-spark); version suffix switches from "n" (Neo) to "s" (Spark).
+   The historical 10.7.6n1 entry below keeps its original Neo naming.
+
+   aarch64 / ARM64 platform support (e.g. NVIDIA DGX Spark, Ubuntu Linux):
+   - New makefile_dgx_spark_utf8_ffi: 64-bit UTF-8 + libffi build for aarch64 Linux,
+     tuned with -mcpu=native for the Grace CPU (no -m64, which does not exist on
+     aarch64 GCC).
+   - ./configure now auto-detects the architecture (uname -m) and selects the
+     aarch64 makefile automatically on ARM Linux; x86_64 keeps previous behavior.
+     Plain 'make' therefore works out of the box on DGX Spark.
+   - FFI signed char fix (nl-import.c): ffi_type_sint8 return values are read via
+     (signed char *) instead of (char *) — plain char is unsigned on aarch64/ARM,
+     which corrupted signed 8-bit FFI return values.
+   - qa-libffi made platform portable: no more hardcoded 'cc -m32/-m64' and macOS
+     '.dylib' names; flags and shared-object extension are chosen per platform
+     (-m flags only on x86, .so on Linux/BSD). util/ffitest.c ret_sint8/ret_uint8
+     use explicit signed/unsigned char.
+   - Verified on DGX Spark: the complete extended test suite (make testall, 21
+     tests incl. Cilk, FOOP, libffi, bigint, longnum, network, pipes) passes
+     end-to-end with exit code 0; qa-bench reports a 0.73–0.76 performance ratio
+     versus the 2016 MacBook reference calibration (i.e. faster than the
+     reference machine).
+
+   Bytecode VM correctness fixes:
+   - Cilk process API (spawn/sync/abort) fixed: the TCO compiler bound let/local
+     variables to VM local slots, but spawn/sync write results through the symbol
+     object (newLISP dynamic binding), so compiled code never saw spawned results
+     (symbols read as nil, then "value expected" errors). Calls passing a quoted
+     local symbol — e.g. (spawn 'a ...), (set 'a ...) — now mark the lambda
+     un-compilable (quotedLocalArg check in nl-vm.c) and fall back to the
+     tree-walking evaluator, which has correct dynamic-binding semantics.
+     qa-cilk passes again.
+   - FOOP fixed and qa-foop un-segfaulted:
+     * A symbol merely *named* "self" is no longer compiled as self-recursion
+       (OP_CALL_SELF/OP_LOAD_SELF match only the enclosing lambda's own symbol);
+       in FOOP, (self n) is the self primitive, not a recursive call.
+     * VM frame entry (executeBytecode, OP_CALL, OP_TAIL_CALL, OP_CALL_SELF) now
+       maintains objSymbol.contents = objCell like evaluateLambda(), so (self)
+       and (self n) see the colon object in compiled methods.
+     * (: method obj ...) compiles with the method name passed as a raw symbol
+       constant, and p_colon accepts a (quote sym) first argument — the VM's
+       pre-evaluated argument convention previously destroyed the raw symbol.
+   - Gen 0 nursery disabled by default (NEWLISP_ENABLE_GEN0=1 opts back in):
+     collectGen0() evacuates cells while the tree-walking evaluator still holds
+     raw pointers to them in C locals (in-flight expression trees in
+     evaluateExpression()/evaluateLambda()). Without C-stack scanning those
+     pointers go stale after the gen0 reset, corrupting live expressions under
+     heavy allocation churn — reproduced with the qa-factorfibo prime sieve at
+     N = 1,000,000 ("illegal parameter type") and qa-bench after ~15k apply
+     iterations ("invalid function"). All cells are now allocated from the
+     proven non-moving free-list allocator; qa-factorfibo and qa-bench pass.
+
+   Build quality:
+   - Zero compiler warnings under -Wall on aarch64 GCC (21 warnings fixed):
+     -Wunused-value ((void)popResult()), -Wmisleading-indentation (newlisp.c,
+     nl-filesys.c, nl-xml-json.c), -Wunused-result (vasprintf checked in
+     varPrintf/sendf), -Wstringop-truncation (bounded strncpy + explicit NUL,
+     memcpy where exact-size), -Wrestrict (memmove for overlapping copy in
+     nl-debug.c), -Wformat-truncation/-Wformat-overflow (snprintf bounds,
+     null %s), -Walloca-larger-than (return(errorProc()) so the compiler can
+     prove maxIdx >= 1 in p_bayesTrain).
+
+   Version banner updated to "newLISP Spark v.10.7.6s1"; copyright extended
+   with "Copyright (C) 2026 Ivan Rocha".

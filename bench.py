@@ -1,4 +1,4 @@
-# Benchmark comparison harness for Python 3.14 vs newLISP Neo
+# Benchmark comparison harness for Python 3.14 vs newLISP Spark
 import time
 
 def fib(n):

@@ -123,21 +123,21 @@ char * pre, * post, * header, * footer;
 params = getString(params, &pre);
 params = getString(params, &post);
 
-strncpy(debugPreStr, pre, 8);
-strncpy(debugPostStr, post, 8);
+strncpy(debugPreStr, pre, 7);
+strncpy(debugPostStr, post, 7);
 *(debugPreStr + 7) = 0;
 *(debugPostStr + 7) = 0;
 
 if(params != nilCell)
     {
     params = getString(params, &header);
-    strncpy(headerStr, header, 16);
+    strncpy(headerStr, header, 15);
     }
 
 if(params != nilCell)
     {
     getString(params, &footer);
-    strncpy(footerStr, footer, 32);
+    strncpy(footerStr, footer, 31);
     }
 
 *(headerStr + 15) = 0;
@@ -387,8 +387,8 @@ if(strPos != NULL)
     if(pos) /* if there is white space */
         {
         /* swap whitespace and debugPreStr */
-        strncpy(strPos, strPos + preLen, pos);
-        strncpy(strPos + pos, debugPreStr, preLen);
+        memmove(strPos, strPos + preLen, pos);
+        memcpy(strPos + pos, debugPreStr, preLen);
         }
     varPrintf(OUT_CONSOLE, "%s", headerStr);
     varPrintf(OUT_CONSOLE, "%s", strStream.buffer);

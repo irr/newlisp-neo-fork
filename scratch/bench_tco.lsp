@@ -1,7 +1,7 @@
 ;; TCO Verification and Benchmark Suite
 
 (println "========================================")
-(println "       newLISP Neo TCO Benchmark        ")
+(println "       newLISP Spark TCO Benchmark        ")
 (println "========================================")
 
 ;; 1. Self-tail recursion test (100,000,000 steps)

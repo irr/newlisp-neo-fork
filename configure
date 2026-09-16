@@ -83,7 +83,10 @@ elif [ ${os_type} = LINUX ] ; then
 		fi
 	else
 		if [ ${memory_model} = LP64 ] ; then
-			cp makefile_linuxLP64_utf8_ffi makefile_build
+			case `uname -m` in
+				aarch64|arm64) cp makefile_dgx_spark_utf8_ffi makefile_build ;;
+				*) cp makefile_linuxLP64_utf8_ffi makefile_build ;;
+			esac
 		else
 			cp makefile_linux_utf8_ffi makefile_build
 		fi		

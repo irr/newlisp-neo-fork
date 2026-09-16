@@ -2652,7 +2652,7 @@ char * token;
 list = params;
 while(list != nilCell) list = list->next, maxIdx++;
 --maxIdx; /* last is a context not a category */
-if(maxIdx < 1) errorProc(ERR_MISSING_ARGUMENT);
+if(maxIdx < 1) return(errorProc(ERR_MISSING_ARGUMENT));
 
 category = alloca(maxIdx * sizeof(CELL *));
 total = alloca(maxIdx * sizeof(int));
@@ -2682,7 +2682,8 @@ for(idx = 0; idx < maxIdx; idx++)
         memcpy(token + 1, (char *)list->contents, list->aux);
         break;
       case CELL_SYMBOL:
-        strncpy(token, ((SYMBOL *)list->contents)->name, MAX_SYMBOL + 1);
+        strncpy(token, ((SYMBOL *)list->contents)->name, MAX_SYMBOL);
+        token[MAX_SYMBOL] = 0;
         break;
       }
     
@@ -2915,7 +2916,8 @@ for(i = 0; i < nTkn; i++)
         memcpy(token + 1, (char *)tkn->contents, tkn->aux);
         break;
       case CELL_SYMBOL:
-        strncpy(token, ((SYMBOL *)tkn->contents)->name, MAX_SYMBOL + 1);
+        strncpy(token, ((SYMBOL *)tkn->contents)->name, MAX_SYMBOL);
+        token[MAX_SYMBOL] = 0;
         break;
       }
 

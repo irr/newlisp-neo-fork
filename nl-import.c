@@ -1097,7 +1097,8 @@ CELL * ffiTypeToCell(ffi_type *type, void * result)
         return stuffFloat(valueDouble);
         }
     else if(type == &ffi_type_sint8)
-        return stuffInteger(*((char *)result));
+        /* signed char: plain char is unsigned on aarch64/ARM */
+        return stuffInteger(*((signed char *)result));
     else if(type == &ffi_type_uint8)
         return stuffInteger(*((unsigned char *)result));
     else if(type == &ffi_type_sint16)

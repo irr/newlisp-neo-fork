@@ -1,13 +1,15 @@
-# newLISP Neo
+# newLISP Spark
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Regression Tests](https://img.shields.io/badge/qa--dot-100%25%20Passing-brightgreen.svg)](qa-dot)
 [![Tail Call Optimization](https://img.shields.io/badge/TCO-O(1)%20Stack-blueviolet.svg)](#3-tail-call-optimization-tco-and-mutual-recursion)
-[![Speed vs Python](https://img.shields.io/badge/Speed%20vs%20Python%203.14-2.02x%20Faster-orange.svg)](#performance-benchmarks-newlisp-neo-vs-python-314)
+[![Speed vs Python](https://img.shields.io/badge/Speed%20vs%20Python%203.14-2.02x%20Faster-orange.svg)](#performance-benchmarks-newlisp-spark-vs-python-314)
 
-**newLISP Neo** is a modernized, high-performance distribution of [newLISP](http://www.newlisp.org) — an elegant, lightweight, LISP-like scripting language originally created by **Lutz Mueller** for general programming, artificial intelligence, data manipulation, and statistical computing.
+**newLISP Spark** is a modernized, high-performance distribution of [newLISP](http://www.newlisp.org) — an elegant, lightweight, LISP-like scripting language originally created by **Lutz Mueller** for general programming, artificial intelligence, data manipulation, and statistical computing.
 
-This enhanced release overhauls the newLISP engine with a **Direct-Threaded Bytecode Virtual Machine**, full **Tail Call Optimization (TCO)**, and a high-throughput **Generational Garbage Collector**, achieving order-of-magnitude speedups in recursion and iterative loops while preserving **100% backward compatibility** with the official newLISP test suite and existing codebase.
+This enhanced release overhauls the newLISP engine with a **Direct-Threaded Bytecode Virtual Machine**, full **Tail Call Optimization (TCO)**, achieving order-of-magnitude speedups in recursion and iterative loops — and now runs the **complete regression suite** (`make testall`) cleanly on **x86_64 and aarch64/ARM64**, including NVIDIA **DGX Spark**.
+
+**Maintained for this fork by Ivan Rocha** — Copyright (C) 2026 Ivan Rocha. Originally enhanced by KIM Taegyoon; created by Lutz Mueller.
 
 ---
 
@@ -29,10 +31,22 @@ This enhanced release overhauls the newLISP engine with a **Direct-Threaded Byte
   - **64 MB Gen 0 Nursery**: Ultra-fast bump-pointer allocation (`cell = gen0_ptr++`) eliminates pool searching and per-cell free overhead for short-lived intermediate objects.
   - **Cheney-Style Evacuation**: Live objects surviving nursery collections are promoted (`gcEvacuate`) to the tenured Gen 1 heap.
   - **Comprehensive Root Scanning**: Traverses symbol trees, context tables, runtime stacks (`envStack`, `resultStack`, `lambdaStack`), and active VM execution frames.
+  - **Safety first — nursery disabled by default in s1**: the tree-walking evaluator holds raw C-stack pointers into Gen 0 during expression evaluation; evacuating cells mid-evaluation can corrupt live expressions under heavy churn (reproduced with the `qa-factorfibo` prime sieve at N = 1,000,000 and `qa-bench`). By default all cells are allocated from the proven non-moving free-list allocator; set `NEWLISP_ENABLE_GEN0=1` to experiment with the nursery.
+
+- **Native aarch64 / ARM64 Support (e.g. NVIDIA DGX Spark)**:
+  - **Auto-detecting build**: plain `make` now detects aarch64 (`uname -m`) and selects the new `makefile_dgx_spark_utf8_ffi` (64-bit UTF-8 + libffi, tuned with `-mcpu=native` for the Grace CPU); x86_64 keeps its previous makefile. No manual makefile selection needed on ARM Linux.
+  - **libffi correctness on ARM**: FFI `char` returns are now read as `signed char` — plain `char` is unsigned on aarch64, which corrupted signed 8-bit FFI return values.
+  - **Portable FFI test suite**: `qa-libffi` no longer hardcodes `cc -m64` and macOS `.dylib` names — it picks the right flags/extension per platform, so the full FFI/struct/callback battery passes on ARM Linux.
+  - **Verified on DGX Spark**: the complete extended suite (`make testall` — 21 tests incl. Cilk process API, FOOP, bigint, libffi, network, pipes) passes end-to-end, with a **0.73–0.76 qa-bench performance ratio** (vs. the 2016 MacBook reference calibration, i.e. faster than the reference machine).
+
+- **Bytecode VM Correctness Fixes (s1)**:
+  - **Cilk process API fixed** (`spawn`/`sync`/`abort`): the compiler turned `let`/`local`-bound variables into VM slots, but `spawn` writes results through the *symbol* (newLISP's dynamic binding) — spawned results were invisible to compiled code. Calls passing a quoted local symbol (e.g. `(spawn 'a ...)`, `(set 'a ...)`) now force fallback to the tree-walking evaluator, restoring correct semantics.
+  - **FOOP fixed** (`:` dispatch, `self`, segfault removed): symbols merely *named* `self` are no longer miscompiled as self-recursion; VM frame entry now maintains the FOOP `objSymbol` (so `(self n)` works in compiled methods); `(: method obj ...)` compiles with the raw method-name symbol and `p_colon` accepts `(quote sym)`.
+  - **Zero compiler warnings**: the build is clean under `-Wall` on aarch64 GCC (fixed `-Wunused-value`, `-Wmisleading-indentation`, `-Wunused-result`, `-Wstringop-truncation`, `-Wrestrict`, `-Wformat-truncation`/`-Wformat-overflow`, `-Walloca-larger-than`).
 
 - **Memory Safety & Rock-Solid Compatibility**:
   - **Magic-Tagged Bytecode Handles**: Bytecode objects are tagged with `BYTECODE_MAGIC` (`0xBEEC0DE0`) in `cell->aux`, preserving newLISP's native last-element pointer optimization on standard lists and eliminating memory corruption hazards.
-  - **100% Test Suite Pass**: All 396 built-in primitives, contexts as objects, and scoping tests in the `qa-dot` suite pass with **0 errors**.
+  - **100% Test Suite Pass**: All 396 built-in primitives, contexts as objects, and scoping tests in the `qa-dot` suite pass with **0 errors** — and the complete extended suite (`make testall`, 21 tests incl. Cilk/FOOP/libffi/bigint/network) passes end-to-end on x86_64 **and aarch64/ARM64 (DGX Spark)**.
 
 - **Modernized Interactive REPL (`newlisp.c`)**:
   - **Automatic Multi-Line Input**: Automatically detects incomplete expressions (unclosed parentheses `(...)`, double-quoted strings `"..."`, `{...}` braced strings with nesting, and `[text]...[/text]` tags) and seamlessly collects continuation lines until brackets are balanced, then evaluates immediately.
@@ -40,7 +54,7 @@ This enhanced release overhauls the newLISP engine with a **Direct-Threaded Byte
 
 ---
 
-## Performance Benchmarks: newLISP Neo vs. Python 3.14
+## Performance Benchmarks: newLISP Spark vs. Python 3.14
 
 All benchmarks were evaluated under identical conditions on a Windows x86_64 host.
 
@@ -67,7 +81,7 @@ def fib(n):
 | **Original newLISP 10.7.6** (Tree-Walker) | 592.5 ms | 1.00x | 6.89x slower |
 | **CPython 3.12.3** (Standard Python VM) | 186.9 ms | 3.17x faster | 2.17x slower |
 | **CPython 3.14.4** (Optimized Python VM) | 86.0 ms | 6.89x faster | 1.00x (baseline) |
-| **newLISP Neo** (Direct-Threaded VM + TCO + GenGC) | **42.6 ms** | **13.9x faster** | **2.02x FASTER than Python 3.14** |
+| **newLISP Spark** (Direct-Threaded VM + TCO + GenGC) | **42.6 ms** | **13.9x faster** | **2.02x FASTER than Python 3.14** |
 
 ---
 
@@ -110,8 +124,8 @@ def loop_test(n):
 | **CPython 3.12.3** (Standard Python VM, `while`) | 78.8 ms | 2.41x faster | 2.12x slower |
 | **CPython 3.14.4** (Optimized Python VM, `while`) | 37.2 ms | 5.11x faster | 1.00x (baseline) |
 | **CPython 3.14.4** (Tail Recursion) | RecursionError | — | — |
-| **newLISP Neo** (Direct-Threaded VM, `while` loop) | **31.3 ms** | **6.08x faster** | **1.19x FASTER than Python 3.14** |
-| **newLISP Neo** (TCO Engine, Tail-Recursive loop) | **17.3 ms** | **11.0x faster** | **2.15x FASTER than Python 3.14** |
+| **newLISP Spark** (Direct-Threaded VM, `while` loop) | **31.3 ms** | **6.08x faster** | **1.19x FASTER than Python 3.14** |
+| **newLISP Spark** (TCO Engine, Tail-Recursive loop) | **17.3 ms** | **11.0x faster** | **2.15x FASTER than Python 3.14** |
 
 ---
 
@@ -134,7 +148,7 @@ Lisp code ([`bench_tco.lsp`](bench_tco.lsp)):
 Python reference:
 > *Python does not support tail call optimization. Deep recursions trigger `RecursionError: maximum recursion depth exceeded` (default limit 1,000).*
 
-| Benchmark Task | Original newLISP 10.7.6 | Python 3.14 | newLISP Neo (TCO Engine) |
+| Benchmark Task | Original newLISP 10.7.6 | Python 3.14 | newLISP Spark (TCO Engine) |
 |---|---|---|---|
 | **Self-Tail Recursion (100M steps)** | Stack Overflow (`ERR: out of call stack`) | `RecursionError` | **1,023 ms** ($O(1)$ stack, constant memory) |
 | **Tail Accumulator (10M steps)** | Stack Overflow (`ERR: out of call stack`) | `RecursionError` | **151 ms** ($O(1)$ stack, constant memory) |
@@ -161,7 +175,8 @@ mingw32-make -f makefile_mingw64_utf8
 
 ### Build on Linux, macOS, and BSD
 ```bash
-# Automatic platform detection:
+# Automatic platform AND architecture detection
+# (aarch64/ARM64 — e.g. NVIDIA DGX Spark — is auto-detected):
 make
 
 # Or configure first:
@@ -170,7 +185,8 @@ make
 
 # Or build with a specific makefile:
 make -f makefile_linuxLP64_utf8
-make -f makefile_darwinLP64_utf8
+make -f makefile_dgx_spark_utf8_ffi   # aarch64/ARM64 Linux (DGX Spark)
+make -f makefile_darwinLP64_utf8_ffi
 make -f makefile_bsdLP64_utf8
 ```
 
@@ -204,7 +220,8 @@ total time: ...
 Additional test suites can be executed via:
 ```bash
 make check
-# or
+# or the complete extended suite (Cilk processes, FOOP, libffi,
+# bigint, network, pipes — verified green on x86_64 and aarch64/DGX Spark):
 make testall
 ```
 
@@ -226,12 +243,13 @@ python bench.py
 ├── nl-vm.c / nl-vm.h         # Direct-threaded bytecode compiler and virtual machine
 ├── nl-*.c                    # Built-in subsystems (math, string, socket, filesys, etc.)
 ├── pcre.c / pcre.h           # Bundled PCRE regular expression library
-├── makefile_*                # Cross-platform build definitions for Linux, macOS, BSD, Win32/64
+├── makefile_*                # Cross-platform build definitions for Linux (x86_64 + aarch64/DGX Spark), macOS, BSD, Win32/64
 ├── bench_fib.lsp             # Recursive Fibonacci benchmark harness
 ├── bench_loop.lsp            # Arithmetic loop benchmark harness
 ├── bench_tco.lsp             # Tail Call Optimization (TCO) benchmark harness
 ├── bench.py                  # Python 3.14 benchmark comparison harness
 ├── qa-dot / qa-comma         # Complete language regression test suites
+├── qa-specific-tests/        # Extended suite: Cilk, FOOP, libffi, bigint, network, pipes (used by `make testall`)
 ├── modules/                  # Standard library modules (crypto, sqlite3, stat, etc.)
 ├── examples/                 # Sample applications and scripts
 ├── doc/
@@ -258,6 +276,7 @@ python bench.py
 
 - Copyright (C) 2020 Lutz Mueller
 - Copyright (C) 2026 KIM Taegyoon
+- Copyright (C) 2026 Ivan Rocha (maintainer of this fork; aarch64/DGX Spark support, VM correctness and GC safety fixes)
 - **newLISP** was originally designed and implemented by **Lutz Mueller** ([Nuevatec](http://www.newlisp.org)).
-- **newLISP Neo** is released under the [GNU General Public License Version 3 (GPLv3)](LICENSE). See [`LICENSE`](LICENSE) or [`doc/COPYING.txt`](doc/COPYING.txt) for the complete license text.
+- **newLISP Spark** is released under the [GNU General Public License Version 3 (GPLv3)](LICENSE). See [`LICENSE`](LICENSE) or [`doc/COPYING.txt`](doc/COPYING.txt) for the complete license text.
 - Documentation files are distributed under the GNU Free Documentation License (GFDL).

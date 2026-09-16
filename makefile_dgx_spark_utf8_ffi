@@ -1,0 +1,36 @@
+# makefile for newLISP 64bit UTF-8 v.10.x.x on 64 bit LINUX ARM (aarch64)
+# for NVIDIA DGX Spark (Grace CPU, Ubuntu)
+# and FFI
+# Note, that readline support may require different libraries on different OSs
+#
+# USAGE: make -f makefile_dgx_spark_utf8_ffi
+# TEST:  make -f makefile_dgx_spark_utf8_ffi test
+
+OBJS = newlisp.o nl-symbol.o nl-math.o nl-list.o nl-liststr.o nl-string.o nl-filesys.o \
+	nl-sock.o nl-import.o nl-xml-json.o nl-web.o nl-matrix.o nl-debug.o nl-utf8.o pcre.o nl-vm.o
+
+# aarch64 is 64-bit native, no -m64 flag needed; -mcpu=native tunes for Grace
+CFLAGS = -fPIC -mcpu=native -Wall -Wno-uninitialized -Wno-strict-aliasing -Wno-long-long -c -O3 -g -DREADLINE -DSUPPORT_UTF8 -DNEWLISP64 -DLINUX -DFFI
+
+# replace -O3 with -Oz when using clang/llvm
+#CC = clang
+
+CC = gcc
+
+default: $(OBJS)
+	$(CC) $(OBJS) -g -lm -ldl -lreadline -lffi -o newlisp # for UBUNTU Debian
+#	$(CC) $(OBJS) -g -lm -ldl -lreadline -ltermcap -o newlisp # slackware
+#	$(CC) $(OBJS) -g -lm -ldl -lreadline -lncurses -o newlisp # other Linux Dist
+#	$(CC) $(OBJS) -g -lm -ldl -o newlisp # without readline support
+	strip newlisp
+
+.c.o:
+	$(CC) $(CFLAGS) $<
+
+$(OBJS): primes.h protos.h makefile_dgx_spark_utf8_ffi
+
+test: default
+	./newlisp -n "test-run"
+
+cleandocs:
+	../newlispdoc -n -x ${SRCDIR}newlisp_manual.xml

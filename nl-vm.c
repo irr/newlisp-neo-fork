@@ -283,6 +283,19 @@ static int findLocal(Compiler * c, SYMBOL * sym)
     return -1;
 }
 
+/* Detect (quote sym) passed as an argument where sym is a let/local/param
+   bound variable. Functions like spawn/sync/set mutate the symbol object,
+   which compiled VM local slots cannot observe; such lambdas must fall
+   back to the tree-walking evaluator, which uses dynamic symbol binding. */
+static int quotedLocalArg(Compiler * c, CELL * arg)
+{
+    CELL * quoted;
+    if (arg == NULL || arg == nilCell || arg->type != CELL_QUOTE) return 0;
+    quoted = (CELL *)arg->contents;
+    if (quoted == NULL || quoted == nilCell || quoted->type != CELL_SYMBOL) return 0;
+    return (findLocal(c, (SYMBOL *)quoted->contents) >= 0);
+}
+
 static int isSpecialForm(SYMBOL * sym)
 {
     if (sym == NULL) return 0;
@@ -410,7 +423,7 @@ static void compileExpr(Compiler * c, CELL * expr, int is_tail)
                     emitUint16(c, (uint16_t)slot);
                 }
             }
-            else if ((sym == c->self_symbol && c->self_symbol != NULL) || (sym->name && strcmp(sym->name, "self") == 0))
+            else if (sym == c->self_symbol && c->self_symbol != NULL)
             {
                 emitOp(c, OP_LOAD_SELF);
             }
@@ -1123,12 +1136,16 @@ static void compileExpr(Compiler * c, CELL * expr, int is_tail)
                 }
 
                 /* Self-recursive call */
-                if ((hsym == c->self_symbol && c->self_symbol != NULL) || (name && strcmp(name, "self") == 0))
+                /* Self-recursive call: only the enclosing lambda's own symbol.
+                   A symbol merely named "self" is the FOOP primitive and must
+                   be compiled as a normal call. */
+                if (hsym == c->self_symbol && c->self_symbol != NULL)
                 {
                     CELL * arg = head->next;
                     int argc = 0;
                     while (arg != nilCell)
                     {
+                        if (quotedLocalArg(c, arg)) { c->failed = 1; return; }
                         compileExpr(c, arg, 0);
                         argc++;
                         arg = arg->next;
@@ -1137,6 +1154,34 @@ static void compileExpr(Compiler * c, CELL * expr, int is_tail)
                         emitOp(c, OP_TAIL_CALL_SELF);
                     else
                         emitOp(c, OP_CALL_SELF);
+                    emitByte(c, (uint8_t)argc);
+                    return;
+                }
+
+                /* FOOP method dispatch (: name obj ...) — the method name
+                   must reach p_colon as a raw symbol, not an evaluated value */
+                if (strcmp(name, ":") == 0)
+                {
+                    CELL * marg = head->next;
+                    if (marg == nilCell || marg == NULL || marg->type != CELL_SYMBOL)
+                    { c->failed = 1; return; }
+                    compileExpr(c, head, 0);
+                    uint16_t idx = addConstant(c, marg);
+                    emitOp(c, OP_CONST);
+                    emitUint16(c, idx);
+                    int argc = 1;
+                    CELL * arg = marg->next;
+                    while (arg != nilCell)
+                    {
+                        if (quotedLocalArg(c, arg)) { c->failed = 1; return; }
+                        compileExpr(c, arg, 0);
+                        argc++;
+                        arg = arg->next;
+                    }
+                    if (is_tail)
+                        emitOp(c, OP_TAIL_CALL);
+                    else
+                        emitOp(c, OP_CALL);
                     emitByte(c, (uint8_t)argc);
                     return;
                 }
@@ -1153,6 +1198,7 @@ static void compileExpr(Compiler * c, CELL * expr, int is_tail)
             int argc = 0;
             while (arg != nilCell)
             {
+                if (quotedLocalArg(c, arg)) { c->failed = 1; return; }
                 compileExpr(c, arg, 0);
                 argc++;
                 arg = arg->next;
@@ -1331,6 +1377,8 @@ CELL * executeBytecode(CELL * lambdaCell, CELL * args, SYMBOL * newContext)
 
     int base_frame = vm_frame_count;
     VM_CHECK_FRAMES();
+    /* FOOP: mirror evaluateLambda() so (self) sees the colon object */
+    objSymbol.contents = (UINT)objCell;
     vm_frames[vm_frame_count++] = (VM_FRAME){
         .bytecode = bc,
         .ip = bc->code,
@@ -1999,6 +2047,8 @@ CELL * executeBytecode(CELL * lambdaCell, CELL * args, SYMBOL * newContext)
                 }
                 vm_frames[vm_frame_count - 1].ip = ip;
                 VM_CHECK_FRAMES();
+                /* FOOP: mirror evaluateLambda() so (self) sees the colon object */
+                objSymbol.contents = (UINT)objCell;
                 vm_frames[vm_frame_count++] = (VM_FRAME){
                     .bytecode = current_bc,
                     .ip = current_bc->code,
@@ -2081,6 +2131,8 @@ CELL * executeBytecode(CELL * lambdaCell, CELL * args, SYMBOL * newContext)
                         }
                         vm_frames[vm_frame_count - 1].ip = ip;
                         VM_CHECK_FRAMES();
+                        /* FOOP: mirror evaluateLambda() so (self) sees the colon object */
+                        objSymbol.contents = (UINT)objCell;
                         vm_frames[vm_frame_count++] = (VM_FRAME){
                             .bytecode = target_bc,
                             .ip = target_bc->code,
@@ -2219,6 +2271,8 @@ CALL_DISPATCH_DONE:
                             vm_stack[fp + i] = nilCell;
                         }
                         vm_sp = fp + frame_slots;
+                        /* FOOP: mirror evaluateLambda() so (self) sees the colon object */
+                        objSymbol.contents = (UINT)objCell;
                         vm_frames[vm_frame_count - 1] = (VM_FRAME){
                             .bytecode = target_bc,
                             .ip = target_bc->code,
